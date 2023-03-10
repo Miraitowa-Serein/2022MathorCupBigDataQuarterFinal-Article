@@ -316,7 +316,7 @@
 		进行迭代更新，其中$\gamma$为模型的学习率，当$\left|  \boldsymbol{\omega}^{\alpha}-\boldsymbol{\omega}^{\alpha+1} \right|<\eta$或达到最大迭代次数时，停止训练，输出最终模型，其中$\eta$为人为给定的阈值\textcolor{blue}{\cite{plr}}。
 	\end{itemize}
 
-	建立好上述六种多分类模型后，我们依据各模型的预测精度、平均绝对误差、均方误差，建立Stacking集成学习，将上述模型有目的地进行合理组合，从各模型中学到优点，有利于模型的效果的提升。其基本过程为，首先将已经经过处理的原数据集划分成若干个子集数据，在第一层建立多个模型的融合模型，输入数据，并采用五折交叉验证，获得每个模型的对于因变量标签的预测结果；之后第一层的输出结果作为第二层较弱分类模型的输入数据，第二层单个模型进行训练学习，得到最终预测结果\textcolor{blue}{\cite{pstacking}}。算法示意图如\textcolor{blue}{\cref{fig:StackingPicture}}所示，算法伪代码如\textcolor{blue}{Algorithm\ref{StackingFunciton}}所示。
+	建立好上述六种多分类模型后，我们依据各模型的预测准确率、平均绝对误差、均方误差，建立Stacking集成学习，将上述模型有目的地进行合理组合，从各模型中学到优点，有利于模型的效果的提升。其基本过程为，首先将已经经过处理的原数据集划分成若干个子集数据，在第一层建立多个模型的融合模型，输入数据，并采用五折交叉验证，获得每个模型的对于因变量标签的预测结果；之后第一层的输出结果作为第二层较弱分类模型的输入数据，第二层单个模型进行训练学习，得到最终预测结果\textcolor{blue}{\cite{pstacking}}。算法示意图如\textcolor{blue}{\cref{fig:StackingPicture}}所示，算法伪代码如\textcolor{blue}{Algorithm\ref{StackingFunciton}}所示。
 
 	\scalebox{0.88}{
 	\begin{algorithm}[H]
@@ -340,11 +340,8 @@
 		\centerline{\includegraphics[scale=0.56]{Stacking示意图.pdf}}
 		\caption{Stacking集成学习示意图}\label{fig:StackingPicture}
 	\end{figure}
+	\subsubsection{语音业务求解}
 
-
-
-
-	% \subsubsection{语音业务求解}
 
 
 	以箱线图所示，用户评分，划分高分组与低分组。
