@@ -127,10 +127,22 @@
 		 \end{tabular}}
 	\end{table}
 	\subsubsection*{Step6 特征构造}
-	观察并分析给定的数据，我们可以初步构造以下特征：
+	观察并分析给定的数据，我们可以构造以下特征：
 	\begin{itemize}
-		\item \textbf{对于附件1与附件3}：观察到附件1中有“家宽投诉”与“资费投诉”两项，而在附件3中有“是否投诉”一项，因此，我们在附件1中构造“是否投诉”一项。若“家宽投诉”与“资费投诉”均为0，则“是否投诉”记为0，否则记为1。并同时删去“家宽投诉”与“资费投诉”。
-		\item \textbf{对于附件2与附件4}：观察数据，我们构造三项新指标，分别为“出现问题场所或应用总”“网络卡速度慢延时大上不了网总”“质差总”。其来源为对应列指标按行求和。
+		\item \textbf{对于附件1与附件3}：
+		\begin{itemize}
+			\item 观察到附件1中有“家宽投诉”与“资费投诉”两项，而在附件3中有“是否投诉”一项，因此，我们在附件1中构造“是否投诉”一项。若“家宽投诉”与“资费投诉”均为0，则“是否投诉”记为0，否则记为1。并同时删去“家宽投诉”与“资费投诉”；
+			\item 观察到附件1中有多个出现问题的场所，因此我们将每一用户出现问题的场所求和，构造“场所合计”，他们为“居民小区”“办公室”“高校”“商业街”“地铁”“农村”“高铁”“其他，请注明”；
+			\item 观察到附件1中有多个类型的问题，因此我们将出现问题求和，构造出“出现问题问题合计”，他们为“手机没有信号”有信号无法拨通”“通话过程中突然中断”“通话中有杂音、听不清、断断续续”“串线”“通话过程中一方听不见”“其他，请注明.1”；
+			\item 观察到附件1中“脱网次数”“mos质差次数”“未接通掉话次数”有相似特征，故将每一用户该三项数据求和，构造出“脱网次数、mos质差次数、未接通掉话次数合计”。
+		\end{itemize}
+		\item \textbf{对于附件2与附件4}：
+		\begin{itemize}
+			\item 观察到附件2中有多个出现问题的场所，构造出“出现问题场所或应用总”；
+			\item 观察到附件2中“手机上网速度慢”“打游戏延时大”“显示有信号上不了网”“全部都卡顿”“全部游戏都卡顿”“手机支付较慢”“看视频卡顿”“上网过程中网络时断时续或时快时慢”“打开网页或APP图片慢”“全部网页或APP都慢”“下载速度慢”“网络信号差/没有信号”特征相似，故将每一用户对应的项目数据求和，构造出”网络卡速度慢延时大上不了网总“；
+			\item 观察到附件2中“微信质差次数”以及“上网质差次数”均为质差量值，故将每一用户该二项数据求和，构造出“质差总”；
+			\item 观察到附件2中的场所类别较多，故将场所求和，构造出“地点总”。
+		\end{itemize}
 	\end{itemize}
 	\subsubsection*{Step7 数据标准化}
 	该处标准化处理为\textbf{Z-score}方法，仅用于后续机器学习模型的使用。而在问题一的熵权法、灰色关联度分析中我们采用\textbf{Min-Max}方法，该方法在后文模型中会具体说明。
@@ -154,8 +166,185 @@
 	\subsubsection*{Step9 学习数据训练集与测试集划分}
 	为计算问题二中建立的模型的准确性等指标，需要在附件1与附件2中均划分训练集与测试集。对于语音业务划分训练集与测试集比例为8:2；而对于上网业务，其比例设为9:1。对于比例的设置，本文将在后文解释其合理性。且上述划分利用sklearn库中的train\_test\_split函数实现，且任意设定随机种子为2022，确保多次调试结果的一致性。该函数可确保划分的随机性，确保训练集与测试集数据分布规律大致相同。
 
+	\subsection{问题一模型的建立与求解}
+	对于问题一，我们综合用户评分箱线图、用户评分联合分布图，并结合初赛得出的各项因素重要性程度，对数据进行更深层次分析，筛选出评分合理的用户群体，并依据该数据建立多分类预测模型，预测未知评分的用户集体对于语音及上网业务的满意程度。
+	\subsubsection{语音业务及上网业务数据分析}
+	首先，我们绘制出用户对于语音及上网业务评分的箱线图，如\textcolor{blue}{\cref{fig:语音业务箱线图}}、\textcolor{blue}{\cref{fig:上网业务箱线图}}所示。
+	\begin{figure}[H]
+		\centering
+		\begin{minipage}{0.48\linewidth}
+			\centering
+			\includegraphics[width=1.0\linewidth]{[附件1][语音通话整体满意度、网络覆盖与信号强度、语音通话清晰度、语音通话稳定性]评分箱线图.pdf}
+			\caption{语音业务用户四项评分箱线图}
+			\label{fig:语音业务箱线图}
+		\end{minipage}
+		%\qquad
+		\begin{minipage}{0.48\linewidth}
+			\centering
+			\includegraphics[width=1.0\linewidth]{[附件2][手机上网整体满意度、网络覆盖与信号强度、手机上网速度、手机上网稳定性]评分箱线图.pdf}
+			\caption{上网业务用户四项评分箱线图}
+			\label{fig:上网业务箱线图}
+		\end{minipage}
+	\end{figure}
+	依据上图结果，我们可以发现用户对于每一业务的四项评分，其分布规律大致一致，但也存在少量异常的数据，为了更清晰地发现各评分之间的散点关系，我们再绘制出语音及上网业务的评分联合分布图，如\textcolor{blue}{\cref{fig:语音业务联合分布图}}、\textcolor{blue}{\cref{fig:上网业务联合分布图}}所示。
+	\begin{figure}
+		\centering
+			\centering
+			\includegraphics[width=0.6\linewidth]{[附件1][语音通话整体满意度、网络覆盖与信号强度、语音通话清晰度、语音通话稳定性]评分联合分布图_纯图版.pdf}
+			\caption{语音业务用户四项评分联合分布图}
+			\label{fig:语音业务联合分布图}
+	\end{figure}
+	\begin{figure}
+		\centering
+			\centering
+			\includegraphics[width=0.6\linewidth]{[附件2][手机上网整体满意度、网络覆盖与信号强度、手机上网速度、手机上网稳定性]评分联合分布图_纯图版.pdf}
+			\caption{上网业务用户四项评分联合分布图}
+			\label{fig:上网业务联合分布图}
+	\end{figure}
+	\subsection{多分类模型的建立}
+	本文依旧采用初赛使用的六种多分类模型，并对其进行Stacking集成学习。首先多分类基本模型建立理论如下：
+	\begin{itemize}
+		\item \textbf{随机森林（Random Forest, RF）}是由多棵决策树（Decision Tree）进行组合后对预测结果投票或取均值的一种算法\textcolor{blue}{\cite{prf}}。其有分类和回归两种模型，对于本题，我们选择分类模型。其简要过程如\textcolor{blue}{\cref{fig:RF}}所示，算法伪代码如\textcolor{blue}{Algorithm\ref{RFfunction}}所示。
+	
+		\scalebox{0.88}{
+		\begin{algorithm}[H]
+			\label{RFfunction}
+			\KwData{数据集$\mathcal{D}$}
+			\textbf{function} DTree$\left(\mathcal{D}\right)$\
+			
+			\eIf{Termination}
+			{\textbf{return} $\mathrm{base}\left(g_t\right)$}
+			{\textbf{learn} $b\left(x\right)$并且依据$b\left(x\right)$划分$\mathcal{D}$为$\mathcal{D}_C$\
+	
+			\textbf{build} $G_C \leftarrow$ DTree($\mathcal{D}_C$)\
+	
+			\textbf{return} $G\left(x\right)=\sum\limits_{C=1}^{C}[\![b\left(x\right)=C]\!]G_C\left(x\right)$}
+			
+			\textbf{function} RandomForest$\left(\mathcal{D}\right)$\
+			
+			\For{$t=1,2,3,\cdots,T$}{\textbf{request} 数据集$\tilde{\mathcal{D}}_t \leftarrow$ BoostStrapping$\left(\mathcal{D}\right)$\
+			
+			\textbf{obtain} DTree $g_t\leftarrow$ DTree$\left(\tilde{\mathcal{D}}_t\right)$\
+	
+			\textbf{return} $G=$ Uniform$\left(g_t\right)$
+			}
+			
+			\KwResult{随机森林模型$G=\mathrm{Uniform}\left(g_t\right)$}
+			\caption{随机森林（RF）}
+		\end{algorithm}}
+		\begin{figure}[H]
+			\centerline{\includegraphics[scale=0.80]{随机森林简图.pdf}}
+			\caption{随机森林算法简图}\label{fig:RF}
+		\end{figure}
+		
+		对于单棵决策树而言，本文利用\textbf{CART}算法\textcolor{blue}{\cite{prf}}构建。基尼系数是衡量样本集合纯度的指标，当该值越小时，其纯度也就越高。计算公式如下
+		\begin{equation}
+			Gini\left( R_i \right)=\sum\limits_{k=1}^{K}\sum\limits_{k\ne k'}P_k P_{k'}=1-\sum\limits_{k=1}^{K}P_k^2 \label{fGini}
+		\end{equation}
+		其中，$R$为选取出的特征（影响因素），$K$表示在该特征中包含的类别数，$P_k$表示该特征中第$k$类别的出现概率。
+	
+		由上述分析可知，对于单棵决策树而言，其叶子节点的分裂特征为选择的所有特征中基尼系数最小的特征。
+		\item \textbf{极端梯度提升（eXtreme Gradient Boosting, XGBoost）}。XGBoost算法是一种基于树模型的优化模型，其将弱分类器组合，训练出一个较强的分类器。该算法通过多次迭代，生成一个新的树模型用于优化前一个树模型，随着迭代次数的增多，该模型的预测精度也会相应提高\textcolor{blue}{\cite{pxgboost1}}。
+
+		记通过数据处理后的数据集特征为$R\left(x_{ij}\right)_{m\times n}$，表示其包含$m$个用户，$n$个特征，在训练中形成的CART树的集合记为$F=\left\{f\left(x\right)=w_{q\left(x\right)},q:\mathbf{R}^n\to T,w\in \mathbf{R}^T\right\}$，其中$q$为树模型的叶节点决策规划，$T$为某一树模型叶节点数量，$w$为叶节点对应的得分\textcolor{blue}{\cite{pxgboost2}}。对于预测的$y$值，其计算公式为
+		\begin{equation}
+			\hat{y}=\varphi \left( x_i \right) =\sum\limits_{k=1}^K{f_k\left( x_i \right)} \label{fXGBoostypre}
+		\end{equation}
+	
+		XGBoost算法在每一次迭代过程中会保存前面所学习的模型，会将这些模型加入到新一轮迭代过程中，因此我们记第$i$个模型为预测结果为
+		\begin{equation}
+			\hat{y}_{i}^{\left(t\right)}=\hat{y}_{i}^{\left(t-1\right)}+f_t\left(x_i\right) \label{fXGBoostyprei}
+		\end{equation}
+		
+		XGBoost算法的目标函数计算公式如下
+		\begin{equation}
+			L^{\left(t\right)}=\sum\limits_{i=1}^{n}l\left(y_i,\hat{y}_{i}^{\left(t-1\right)}+f_t\left(x_i\right)\right)+\gamma T+\frac{1}{2}\lambda\sum\limits_{j=1}^T{w_j^2}+\mathrm{const} \label{fXGBoostL}
+		\end{equation}
+		% 其中
+		% \begin{equation}
+		% 	\Omega\left(f_t\right)=\gamma T+\frac{1}{2}\lambda\sum\limits_{j=1}^T{w_j^2} \label{fXGBoostOmega}
+		% \end{equation}
+		上述公式中，$l$为模型误差损失，描述在该模型下预测值与实际值之间的出差异损失，$\Omega$为模型叶节点的正则项惩罚系数，$\gamma$与$\lambda$为模型的超参数\textcolor{blue}{\cite{pxgboost2}}。
+		通常情况下，我们难以用枚举法得到在模型中所训练出来的树结构，因此这里采用贪婪算法，从单叶子节点开始，通过迭代方法，将其加入到树结构中，从而得到最优解，其计算公式\textcolor{blue}{\cite{pxgboost3}}如下
+		\begin{equation}
+			\mathcal{L}_{split}=\frac{1}{2}\left[\frac{\left(\sum_{i\in I_L}g_i\right)^2}{\sum_{i\in I_L}h_i+\lambda}+\frac{\left(\sum_{i\in I_R}g_i\right)^2}{\sum_{i\in I_R}h_i+\lambda}-\frac{\left(\sum_{i\in I}g_i\right)^2}{\sum_{i\in I}h_i+\lambda}\right]-\gamma \label{fXGBoostLsplit}
+		\end{equation}
+		其中$I_j=\left\{i|q\left(x_i\right)=j\right\}$为叶节点$j$上的样本集合\textcolor{blue}{\cite{pxgboost2}}，且有
+		\begin{equation}
+			g_i=\partial_{\hat{y}^{\left(t-1\right)}}l\left(y_i,\hat{y}_i^{\left(t-1\right)}\right)
+		\end{equation}
+		\begin{equation}
+			h_i=\partial_{\hat{y}^{\left(t-1\right)}}^2l\left(y_i,\hat{y}_i^{\left(t-1\right)}\right) \label{xgboosthi}
+		\end{equation}
+	
+		通过上述分析，我们可以得到XGBoost算法简图，如\textcolor{blue}{\cref{fig:XGBoost}}所示。
+		\begin{figure}[h!t]
+			\centerline{\includegraphics[scale=0.60]{XGBoost简图.pdf}}
+			\caption{XGBoost算法简图}\label{fig:XGBoost}
+		\end{figure}
+		\item \textbf{K-近邻（K Nearest Neighbor, KNN）}。KNN算法的主要思想为：在出现新样本时从现有的训练数据中找到与其相对应的最接近的$K$个样本，并根据最相似的类别出现的样本进行分类。基于多数$K$个样本所属的类别来分辨待分类的数据集所属的类别\textcolor{blue}{\cite{pknn}}。接近度由两点之间的距离函数给出属性空间中的点决定。距离函数通常使用两个点之间的标准欧几里得距离。欧氏距离的计算公式如下
+		\begin{equation}
+			d(X, Y)=\sqrt{\sum\limits_{i=1}^{n}\left(X_{i}-Y_{i}\right)^{2}} \label{fdistance}
+		\end{equation}
+		其中$X=\left(x_{1},x_{2},\cdots,x_{m}\right)^{\mathrm{T}}$和$Y=\left(y_{1},y_{2},\cdots,y_{m}\right)^{\mathrm{T}}$表示两个样本列数据，$m$为样本数量。
+		
+		\item \textbf{支持向量机（Support Vector Machine, SVM）}。SVM建立在结构风险最小原理及Vapnik-Chervonenkis理论基础之上\textcolor{blue}{\cite{psvm}}，以有限的数据信息，在数据样本中找出合适区分类别的决策分界面，且保证边界点与分界面尽可能远，即需要再找出合适的边界分界面，该算法示意图如\textcolor{blue}{\cref{fig:svmpicture}}所示。
+		\begin{figure}[h!t]
+			\centerline{\includegraphics[scale=0.88]{SVM示意图.pdf}}
+			\caption{SVM示意图}\label{fig:svmpicture}
+		\end{figure}
+		而由于SVM多应用于解决二分类问题，且我们需要建立多分类模型，因此需要对其进行相应的改进。本文采用OVR（One Versus Rest）方法，将该问题改进为多个二分类问题\textcolor{blue}{\cite{psvm}}。在模型的训练时，任意将某一类别记为一类，其余类别记为另一类别，依次下去，建立出多分类的SVM模型。而对于核函数的选择，本文选择高斯核函数进行求解，其定义公式如下
+		\begin{equation}
+			K\left(x_i, x_j\right)=\exp \left(-\frac{\left\|x_i-x_j\right\|^{2}}{2\sigma^{2}}\right)=\exp \left(-\gamma \left\|x_i-x_j\right\|^{2}\right) \label{fgauss}
+		\end{equation}
+		对于高斯核函数，其可以反映出样本两点之间的相似度大小。当$\sigma$确定后，若两点之间距离越小，则相似度趋近于1；若距离越大，则相似度趋近于0。
+		\item \textbf{LightGBM（Light Gradient Boosting Machine）}。LightGBM模型是基于决策树算法构建的一种高效的机器学习算法\textcolor{blue}{\cite{plightgbm}}。其为XGBoost、直方图算法（Histogram）、基于梯度的单边采样（GOSS）算法以及互斥特征捆绑（EFB）算法的结合的一种算法。
+		
+		\item \textbf{多分类逻辑回归（Multinomial Logistic Regression）}。多分类逻辑回归是基于逻辑回归（Logistic Regression）进行学习的分类模型。对于逻辑回归模型，其属于分类模型，多用于二分类问题。若数据集为$\left(\boldsymbol{A},\boldsymbol{B}\right)=\left(\left(\boldsymbol{a}_1,b_1\right),\left(\boldsymbol{a}_2,b_2\right),\cdots,\left(\boldsymbol{a}_m,b_m\right)\right)^{\mathrm{T}}$，其中$\boldsymbol{a}_i=\left(a_i^1,a_i^2,\cdots,a_i^j\right)$，$a_i^j$为样本$\boldsymbol{a}_i$的第$j$个特征，$\boldsymbol{B}$为因变量标签矩阵，该模型使用Sigmoid函数，同时构建样本$\boldsymbol{a}_i$所属类别的概率，对于标签为$1$的结果，其概率可写为
+		\begin{equation}
+			P\left(b_i=1\mid \boldsymbol{a}_i,\boldsymbol{\omega}\right)=\frac{1}{1+\mathrm{e}^{-\boldsymbol{a}_ib_i\boldsymbol{\omega}^\mathrm{T}}} \label{fLRp}
+		\end{equation}
+		其中$\boldsymbol{\omega}=\left(\omega^0,\omega^1,\cdots,\omega^n\right)^\mathrm{T}$为权重向量，即为优化模型的超参数。
+		逻辑回归中利用损失函数来评估模型的预测结果与实际值之间的误差，其计算公式如下
+		\begin{equation}
+			L\left(\boldsymbol{A},\boldsymbol{B},\boldsymbol{\omega}\right)=\frac{1}{m}\sum\limits_{i=1}^{m}\log \left(1+\mathrm{e}^{-\boldsymbol{a}_ib_i \boldsymbol{\omega}^{\mathrm{T}}}\right) \label{fLRl}
+		\end{equation}
+		而对于$\boldsymbol{\omega}$，常采用梯度下降法来获得模型参数的最优解，其通过
+		\begin{equation}
+			\boldsymbol{\omega}^{\alpha+1}=\boldsymbol{\omega}^\alpha-\frac{\gamma}{m}\sum\limits_{i=1}^{m}\left(\frac{1}{1+\mathrm{e}^{-\boldsymbol{a}_ib_i \boldsymbol{\omega}^{\mathrm{T}}}}-1\right)\boldsymbol{a}_ib_i \label{fLRw}
+		\end{equation}
+		进行迭代更新，其中$\gamma$为模型的学习率，当$\left|  \boldsymbol{\omega}^{\alpha}-\boldsymbol{\omega}^{\alpha+1} \right|<\eta$或达到最大迭代次数时，停止训练，输出最终模型，其中$\eta$为人为给定的阈值\textcolor{blue}{\cite{plr}}。
+	\end{itemize}
+
+	建立好上述六种多分类模型后，我们依据各模型的预测精度、平均绝对误差、均方误差，建立Stacking集成学习，将上述模型有目的地进行合理组合，从各模型中学到优点，有利于模型的效果的提升。其基本过程为，首先将已经经过处理的原数据集划分成若干个子集数据，在第一层建立多个模型的融合模型，输入数据，并采用五折交叉验证，获得每个模型的对于因变量标签的预测结果；之后第一层的输出结果作为第二层较弱分类模型的输入数据，第二层单个模型进行训练学习，得到最终预测结果\textcolor{blue}{\cite{pstacking}}。算法示意图如\textcolor{blue}{\cref{fig:StackingPicture}}所示，算法伪代码如\textcolor{blue}{Algorithm\ref{StackingFunciton}}所示。
+
+	\scalebox{0.88}{
+	\begin{algorithm}[H]
+		\label{StackingFunciton}
+		\KwIn{训练集$\mathcal{D}$\
+
+		第一层学习模型$\mathcal{F}_1$，$\mathcal{F}_2$，$\cdots$，$\mathcal{F}_n$\
+
+		第二层学习模型$\mathcal{S}$}
+		\For{$t=1,2,3,\cdots,n$}{$h_n=\mathcal{F}_n\left(\mathcal{D}\right)$}
+		$\mathcal{D}'=\varnothing$\
+
+		\For{$i=1,2,\cdots,m$}{\For{$t=1,2,\cdots,n$}{$z_{in}=h_n\left(x_i\right)$}
+		$\mathcal{D}'=\mathcal{D}'\cup\left(\left(z_{i1},z_{i2},\cdots,z_{in}\right),y_i\right)$}
+		$h'=\mathcal{S}\left(D'\right)$
+
+		\KwOut{$\mathcal{H}\left(x\right)=h'\left(h_1\left(x\right),h_2\left(x\right),\cdots,h_n\left(x\right)\right)$}
+		\caption{Stacking集成学习}
+	\end{algorithm}}
+	\begin{figure}[H]
+		\centerline{\includegraphics[scale=0.56]{Stacking示意图.pdf}}
+		\caption{Stacking集成学习示意图}\label{fig:StackingPicture}
+	\end{figure}
 
 
+
+
+	% \subsubsection{语音业务求解}
 
 
 	以箱线图所示，用户评分，划分高分组与低分组。
@@ -214,6 +403,24 @@
 	\url{https://blog.csdn.net/weixin_44109827/article/details/124786873}.
 
 	\bibitem{ppearson1}肖杨,李亚,王海瑞,常梦容.基于皮尔逊相关系数的滚动轴承混合域特征选择方法[J].化工自动化及仪表,2022,49(03):308-315.DOI:10.20030/j.cnki.1000-3932.202203009.
+
+	\bibitem{prf}饶雷,冉军,陶建权,胡号朋,吴沁,熊圣新.基于随机森林的海上风电机组发电机轴承异常状态监测方法[J].船舶工程,2022,44(S2):27-31.DOI:10.13788/j.cnki.cbgc.2022.S2.06.
+
+	\bibitem{pxgboost1}陈振宇,刘金波,李晨,季晓慧,李大鹏,黄运豪,狄方春,高兴宇,徐立中.基于LSTM与XGBoost组合模型的超短期电力负荷预测[J].电网技术,2020,44(02):614-620.DOI:10.13335/j.1000-3673.pst.2019.1566.
+
+	\bibitem{pxgboost2}杨贵军,徐雪,赵富强.基于XGBoost算法的用户评分预测模型及应用[J].数据分析与知识发现,2019,3(01):118-126.
+
+	\bibitem{pxgboost3}Tianqi Chen and Carlos Guestrin. 2016. XGBoost: A Scalable Tree Boosting System. In Proceedings of the 22nd ACM SIGKDD International Conference on Knowledge Discovery and Data Mining (KDD '16). Association for Computing Machinery, New York, NY, USA, 785–794. \url{https://doi.org/10.1145/2939672.2939785}.
+
+	\bibitem{pknn}张著英,黄玉龙,王翰虎.一个高效的KNN分类算法[J].计算机科学,2008(03):170-172.
+
+	\bibitem{psvm}汪海燕,黎建辉,杨风雷.支持向量机理论及算法研究综述[J].计算机应用研究,2014,31(05):1281-1286.
+
+	\bibitem{plightgbm}马晓君,沙靖岚,牛雪琪.基于LightGBM算法的P2P项目信用评级模型的设计及应用[J].数量经济技术经济研究,2018,35(05):144-160.DOI:10.13653/j.cnki.jqte.20180503.001.
+
+	\bibitem{plr}唐敏,张宇浩,邓国强.高效的非交互式隐私保护逻辑回归模型[J/OL].计算机工程:1-11[2023-01-04].DOI:10.19678/j.issn.1000-3428.0065549.
+
+	\bibitem{pstacking}史佳琪,张建华.基于多模型融合Stacking集成学习方式的负荷预测方法[J].中国电机工程学报,2019,39(14):4032-4042.DOI:10.13334/j.0258-8013.pcsee.181510.
 
 	\end{thebibliography}
 	\end{spacing}
