@@ -838,7 +838,7 @@
 	\end{table}
 	通过分析\textcolor{blue}{\cref{tab:优化结果}}，我们可以发现优化效果良好，对于整体用户的评分把握程度大幅度提升。
 
-	为了更好地评估模型，对预测结果的合理性进行分析，我们绘制出各个模型的\textbf{混淆矩阵热力图}、\textbf{分类报告}、\textbf{ROC/AUC曲线}。这里由于篇幅原因，我们仅展示“预测语音业务-网络覆盖与信号强度”三幅模型效果可视化图形，其余模型的分析与其一致。对于其余模型的可视化图形，读者可在附录中查看。其余七个模型的混淆矩阵热力图见\textcolor{blue}{\cref{fig:SecondModelConfusionMatrix}}\textasciitilde\textcolor{blue}{\cref{fig:EighthModelConfusionMatrix}}；分类报告见\textcolor{blue}{\cref{fig:SecondModelClassificationReport}}\textasciitilde\textcolor{blue}{\cref{fig:EighthModelClassificationReport}}；ROC/AUC曲线见\textcolor{blue}{\cref{fig:SecondModelROCAUC}}\textasciitilde\textcolor{blue}{\cref{fig:EighthModelROCAUC}}。
+	为了更好地评估模型，对预测结果的合理性进行分析，我们绘制出各个模型的\textbf{混淆矩阵热力图}、\textbf{分类报告}、\textbf{ROC/AUC曲线}。这里由于篇幅原因，我们仅展示“预测语音业务-网络覆盖与信号强度”三幅模型效果可视化图形，其余模型的分析与其一致。对于其余模型的可视化图形，读者可在附录中查看。其余七个模型的混淆矩阵热力图见\textcolor{blue}{\cref{fig:FirstModelConfusionMatrix}}\textasciitilde\textcolor{blue}{\cref{fig:EighthModelConfusionMatrix}}；分类报告见\textcolor{blue}{\cref{fig:FirstModelClassificationReport}}\textasciitilde\textcolor{blue}{\cref{fig:EighthModelClassificationReport}}；ROC/AUC曲线见\textcolor{blue}{\cref{fig:FirstModelROCAUC}}\textasciitilde\textcolor{blue}{\cref{fig:EighthModelROCAUC}}。
 	\begin{itemize}
 		\item \textbf{混淆矩阵热力图}。该可视化图形的每一行表示样本标签的实际类别，在本题中表示用户评分的实际值\textcolor{blue}{\footnote{上文中提到我们对用户评分进行标签编码，从原来的$\left[1,10\right]$映射至新评分标签$\left[0,9\right]$，即在原评分基础上减$1$，而在混淆矩阵热力图及分类报告图示中我们将标签编码已映射回原评分，对于模型的ROC/AUC曲线，我们未映射回原评分。}}，而每一行表示样本标签的预测类别，在本题中表示用户评分的预测值。因此该图示的主对角线数据之和即为模型预测准确的样本数。对于多分类模型，我们可以随机指定一类为正类，而其余就为对应的负类。这里我们需要引入四项值，分别为$TP$、$FN$、$FP$、$TN$，其中T为True，F为False，这两个字母表示预测值与实际值是否相同；P为Positive，N为Negative，这两个字母表示预测出的是属于正类（阳性）还是负类（阴性）。而混淆矩阵热力图即为这些值组成，该图示可以直观地观察到预测准确与错误的情况，以及模型对于每一类别的区分程度。模型二的混淆矩阵热力图见\textcolor{blue}{\cref{fig:SecondModelConfusionMatrix}}。
 		\begin{figure}[H]
@@ -902,7 +902,8 @@
 		\end{figure}
 		根据上图结果，我们可以发现，模型二预测用户对于“语音业务-语音通话整体满意度”的评分结果中，模型对各评分预测的$\mathrm{AUC}\geqslant0.50$，即以$y=x$为分界线。同时，我们可以发现“macro-average ROC curve”指标，其是通过Macro方法求得，在上文中我们提到，该数据样本的标签分类是严重不平衡的，该方法能够平等对待每一项分类，在此方法下，我们可以对于小样本类别的准确率有一定把握，其曲线下面积$\mathrm{AUC}=0.62$，位于分界线左上，预测效果良好；而对于“micro-average ROC curve”指标，其$\mathrm{AUC}=0.84$，这指的是利用Micro方法求得曲线，曲线下面积为0.84，曲线下面积较大，且曲线有向左上角最优点靠近的趋势，可以说明模型整体能力较优。
 	\end{itemize}
-
+	
+	此外，本文还将初赛与复赛中所建立的八个最终模型的混淆矩阵热力图、分类报告、ROC/AUC曲线可视化图形进行比较，可以发现，复赛中在新数据集上所建立的模型的预测效果较初赛中所建立的模型各项指标均有所提升，符合预期效果。
 	\section{模型的评价与推广}
 	\subsection{模型的评价}
 	\begin{itemize}
@@ -975,6 +976,7 @@
 
 	\bibitem{pstacking}史佳琪,张建华.基于多模型融合Stacking集成学习方式的负荷预测方法[J].中国电机工程学报,2019,39(14):4032-4042.DOI:10.13334/j.0258-8013.pcsee.181510.
 
+	\bibitem{procauc}A.Tharwat, Applied Computing and Informatics (2018). \url{https://doi.org/10.1016/j.aci.2018.08.003}.
 	\end{thebibliography}
 	\end{spacing}
 	\newpage
@@ -991,7 +993,7 @@
 % \phantomsection
 % \addcontentsline{toc}{subsection}{[A]图示}
 % 	% \section*{[A]图表}
-	\noindent{\heiti [A]图表}
+	\noindent{\heiti [A]图示}
 	\begin{figure}[H]
 		\centering
 			\centering
@@ -1090,6 +1092,90 @@
 			\includegraphics[width=0.66\linewidth]{[附件2]低分组[出现问题场所或应用总、网络卡速度慢延时大上不了网总、质差总、地点总]评分多变量联合分布图.pdf}
 			\caption{上网业务低分组评分及特征多变量联合分布图}
 			\label{fig:上网业务低分组评分及特征多变量联合分布图}
+	\end{figure}
+	\begin{figure}[H]
+		\centerline{\includegraphics[scale=0.68]{[附件1]模型一混淆矩阵热力图.pdf}}
+		\caption{模型一混淆矩阵热力图[语音业务-语音通话整体满意度]}\label{fig:FirstModelConfusionMatrix}
+	\end{figure}
+	\begin{figure}[H]
+		\centerline{\includegraphics[scale=0.68]{[附件1]模型三混淆矩阵热力图.pdf}}
+		\caption{模型三混淆矩阵热力图[语音业务-语音通话清晰度]}\label{fig:ThirdModelConfusionMatrix}
+	\end{figure}
+	\begin{figure}[H]
+		\centerline{\includegraphics[scale=0.68]{[附件2]模型四混淆矩阵热力图.pdf}}
+		\caption{模型四混淆矩阵热力图[语音业务-语音通话稳定性]}\label{fig:FourthModelConfusionMatrix}
+	\end{figure}
+	\begin{figure}[H]
+		\centerline{\includegraphics[scale=0.68]{[附件2]模型一混淆矩阵热力图.pdf}}
+		\caption{模型五混淆矩阵热力图[上网业务-手机上网整体满意度]}\label{fig:FifthModelConfusionMatrix}
+	\end{figure}
+	\begin{figure}[H]
+		\centerline{\includegraphics[scale=0.68]{[附件2]模型一混淆矩阵热力图.pdf}}
+		\caption{模型六混淆矩阵热力图[上网业务-网络覆盖与信号强度]}\label{fig:SixthModelConfusionMatrix}
+	\end{figure}
+	\begin{figure}[H]
+		\centerline{\includegraphics[scale=0.68]{[附件2]模型三混淆矩阵热力图.pdf}}
+		\caption{模型七混淆矩阵热力图[上网业务-手机上网速度]}\label{fig:SeventhModelConfusionMatrix}
+	\end{figure}
+	\begin{figure}[H]
+		\centerline{\includegraphics[scale=0.68]{[附件1]模型四混淆矩阵热力图.pdf}}
+		\caption{模型八混淆矩阵热力图[上网业务-手机上网稳定性]}\label{fig:EighthModelConfusionMatrix}
+	\end{figure}
+	\begin{figure}[H]
+		\centerline{\includegraphics[scale=0.68]{[附件1]模型一分类报告.pdf}}
+		\caption{模型一分类报告[语音业务-语音通话整体满意度]}\label{fig:FirstModelClassificationReport}
+	\end{figure}
+	\begin{figure}[H]
+		\centerline{\includegraphics[scale=0.68]{[附件1]模型三分类报告.pdf}}
+		\caption{模型三分类报告[语音业务-语音通话清晰度]}\label{fig:ThirdModelClassificationReport}
+	\end{figure}
+	\begin{figure}[H]
+		\centerline{\includegraphics[scale=0.68]{[附件1]模型四分类报告.pdf}}
+		\caption{模型四分类报告[语音业务-语音通话稳定性]}\label{fig:FourthModelClassificationReport}
+	\end{figure}
+	\begin{figure}[H]
+		\centerline{\includegraphics[scale=0.68]{[附件2]模型一分类报告.pdf}}
+		\caption{模型五分类报告[上网业务-手机上网整体满意度]}\label{fig:FifthModelClassificationReport}
+	\end{figure}
+	\begin{figure}[H]
+		\centerline{\includegraphics[scale=0.68]{[附件2]模型一分类报告.pdf}}
+		\caption{模型六分类报告[上网业务-网络覆盖与信号强度]}\label{fig:SixthModelClassificationReport}
+	\end{figure}
+	\begin{figure}[H]
+		\centerline{\includegraphics[scale=0.68]{[附件2]模型三分类报告.pdf}}
+		\caption{模型七分类报告[上网业务-手机上网速度]}\label{fig:SeventhModelClassificationReport}
+	\end{figure}
+	\begin{figure}[H]
+		\centerline{\includegraphics[scale=0.68]{[附件2]模型四分类报告.pdf}}
+		\caption{模型八分类报告[上网业务-手机上网稳定性]}\label{fig:EighthModelClassificationReport}
+	\end{figure}
+	\begin{figure}[H]
+		\centerline{\includegraphics[scale=0.68]{[附件1]模型一ROCAUC.pdf}}
+		\caption{模型一ROC/AUC曲线[语音业务-语音通话整体满意度]}\label{fig:FirstModelROCAUC}
+	\end{figure}
+	\begin{figure}[H]
+		\centerline{\includegraphics[scale=0.68]{[附件1]模型三ROCAUC.pdf}}
+		\caption{模型三ROC/AUC曲线[语音业务-语音通话清晰度]}\label{fig:ThirdModelROCAUC}
+	\end{figure}
+	\begin{figure}[H]
+		\centerline{\includegraphics[scale=0.68]{[附件1]模型四ROCAUC.pdf}}
+		\caption{模型四ROC/AUC曲线[语音业务-语音通话稳定性]}\label{fig:FourthModelROCAUC}
+	\end{figure}
+	\begin{figure}[H]
+		\centerline{\includegraphics[scale=0.68]{[附件2]模型一ROCAUC.pdf}}
+		\caption{模型五ROC/AUC曲线[上网业务-手机上网整体满意度]}\label{fig:FifthModelROCAUC}
+	\end{figure}
+	\begin{figure}[H]
+		\centerline{\includegraphics[scale=0.68]{[附件2]模型一ROCAUC.pdf}}
+		\caption{模型六ROC/AUC曲线[上网业务-网络覆盖与信号强度]}\label{fig:SixthModelROCAUC}
+	\end{figure}
+	\begin{figure}[H]
+		\centerline{\includegraphics[scale=0.68]{[附件2]模型三ROCAUC.pdf}}
+		\caption{模型七ROC/AUC曲线[上网业务-手机上网速度]}\label{fig:SeventhModelROCAUC}
+	\end{figure}
+	\begin{figure}[H]
+		\centerline{\includegraphics[scale=0.68]{[附件2]模型四ROCAUC.pdf}}
+		\caption{模型八ROC/AUC曲线[上网业务-手机上网稳定性]}\label{fig:EighthModelROCAUC}
 	\end{figure}
 \newpage
 % \phantomsection
