@@ -12,7 +12,7 @@
 \keyword{影响程度量化分析；特征工程；Stacking集成学习；评分预测；可视化评估}
 \begin{document}
 	\begin{abstract}
-		这里是摘要
+		对于问题一，我们综合用户评分箱线图、用户评分联合分布图，并结合初赛得出的各项因素重要性程度，对数据进行更深层次分析，筛选出评分合理的用户群体，并依据该数据建立多分类预测模型，预测未知评分的用户集体对于语音及上网业务的满意程度。
 	\end{abstract}
 
 	\pagestyle{empty}
@@ -455,63 +455,93 @@
 \end{table}
 			由上表，我们可以明显发现，对于语音业务，高分组用户使用的手机品牌多为“华为”，而低分组用户使用的手机品牌多为“苹果”。
 			\item 在先前，本文提及到对于语音业务构造出的三列新数据集，分别为：“场所合计”“出现问题合计”“脱网次数、mos质差次数、未接通掉话次数合计”，我们分别绘制出高分组与低分组对应的散点分布图，在图示中，若散点颜色越深，则说明对应的指标数量也就越多。如\textcolor{blue}{\cref{fig:语音业务场所合计高分组}}\textasciitilde\textcolor{blue}{\cref{fig:语音业务脱网次数、mos质差次数、未接通掉话次数合计低分组}}所示。
-			\begin{figure}[H]
+			
+			观察\textcolor{blue}{\cref{fig:语音业务场所合计高分组}}及\textcolor{blue}{\cref{fig:语音业务场所合计低分组}}，我们可以发现：高分组用户“场所合计”指标明显少于低分组用户，且低分组用户“场所合计”指标中，展现出的用户群体呈现更分散化，这也说明低分组用户在日常生活中对于移动手机的使用更为频繁，且使用的场所环境更多元。
+
+			观察\textcolor{blue}{\cref{fig:语音业务出现问题合计高分组}}及\textcolor{blue}{\cref{fig:语音业务出现问题合计低分组}}，我们可以发现：高分组用户“出现问题合计”指标数值及用户群体明显少于低分组，且低分组用户“出现问题合计”分布更为离散，说明低分组用户在语音通话的过程中存在较多方面的不同的问题，如掉话、通话质量差等，而高分组用户遇到的不佳情况明显少于低分组用户，同时遇到的问题类型也更为单一。
+			\begin{figure}[htbp]
 				\centering
 				\begin{minipage}{0.48\linewidth}
 					\centering
-					\includegraphics[width=0.75\linewidth]{[附件1]高分组场所合计分布情况.pdf}
+					\includegraphics[width=0.70\linewidth]{[附件1]高分组场所合计分布情况.pdf}
 					\caption{语音业务场所合计高分组散点分布图}
 					\label{fig:语音业务场所合计高分组}
 				\end{minipage}
 				%\qquad
 				\begin{minipage}{0.48\linewidth}
 					\centering
-					\includegraphics[width=0.75\linewidth]{[附件1]低分组场所合计分布情况.pdf}
+					\includegraphics[width=0.70\linewidth]{[附件1]低分组场所合计分布情况.pdf}
 					\caption{语音业务场所合计低分组散点分布图}
 					\label{fig:语音业务场所合计低分组}
 				\end{minipage}
 			\end{figure}
-			\begin{figure}[H]
+			\begin{figure}[htbp]
 				\centering
 				\begin{minipage}{0.48\linewidth}
 					\centering
-					\includegraphics[width=0.75\linewidth]{[附件1]高分组出现问题合计分布情况.pdf}
+					\includegraphics[width=0.70\linewidth]{[附件1]高分组出现问题合计分布情况.pdf}
 					\caption{语音业务出现问题合计高分组散点分布图}
-					\label{fig:语音业务场所合计高分组}
+					\label{fig:语音业务出现问题合计高分组}
 				\end{minipage}
 				%\qquad
 				\begin{minipage}{0.48\linewidth}
 					\centering
-					\includegraphics[width=0.75\linewidth]{[附件1]低分组出现问题合计分布情况.pdf}
+					\includegraphics[width=0.70\linewidth]{[附件1]低分组出现问题合计分布情况.pdf}
 					\caption{语音业务出现问题合计低分组散点分布图}
-					\label{fig:语音业务场所合计低分组}
+					\label{fig:语音业务出现问题合计低分组}
 				\end{minipage}
 			\end{figure}
 			\begin{figure}[H]
 				\centering
 				\begin{minipage}{0.48\linewidth}
 					\centering
-					\includegraphics[width=0.75\linewidth]{[附件1]高分组脱网次数、mos质差次数、未接通掉话次数合计分布情况.pdf}
+					\includegraphics[width=0.70\linewidth]{[附件1]高分组脱网次数、mos质差次数、未接通掉话次数合计分布情况.pdf}
 					\caption{语音业务不稳定情况高分组散点分布图}
 					\label{fig:语音业务脱网次数、mos质差次数、未接通掉话次数合计高分组}
 				\end{minipage}
 				%\qquad
 				\begin{minipage}{0.48\linewidth}
 					\centering
-					\includegraphics[width=0.75\linewidth]{[附件1]低分组脱网次数、mos质差次数、未接通掉话次数合计分布情况.pdf}
+					\includegraphics[width=0.70\linewidth]{[附件1]低分组脱网次数、mos质差次数、未接通掉话次数合计分布情况.pdf}
 					\caption{语音业务不稳定情况低分组散点分布图}
 					\label{fig:语音业务脱网次数、mos质差次数、未接通掉话次数合计低分组}
 				\end{minipage}
 			\end{figure}
 		\end{itemize}
-		\item \textbf{上网业务}：
-		\item 饼图分析：
+		观察\textcolor{blue}{\cref{fig:语音业务脱网次数、mos质差次数、未接通掉话次数合计高分组}}及\textcolor{blue}{\cref{fig:语音业务脱网次数、mos质差次数、未接通掉话次数合计低分组}}，我们可以发现：高分组用户“语音业务脱网次数、mos质差次数、未接通掉话次数合计”次数在整体上明显少于低分组用户，且高分组用户在实际使用移动通信时，遇到的问题类型明显少于低分组用户，相反，低分组用户在整体上遇到的问题类型更多，对于单个用户，其在一定程度上，极有可能因遇到的问题类型较多，而给出较低评分。
+
+		\item \textbf{上网业务}：通过对比上网业务评分低分组和高分组的各项特征，我们可以发现：
+		\begin{itemize}
+		\item 我们将用户上网满意度数据中针对软件的部分划分为视频类应用，游戏类应用，社交类应用，生活类应用四大类，通过对比评分高的用户与评分低的用户，对于这四大类应用，评分低用户的使用次数相较于评分高的用户更多，对手机软件的使用也更为频繁。
+		\item 低分组出现“手机上网速度慢”“打游戏延时大”“显示有信号上不了网”“上网质差次数”“全部都卡顿全部游戏都卡顿”“脱网次数”“微信质差次数”“上网过程中网络时断时续或时快时慢”“打开网页或APP图片慢”“全部网页或APP都慢”“下载速度慢”“网络信号差/没有信号”“手机支付较慢”“和“看视频卡顿”这一系列网络问题的次数高于高分组，说明评分低的用户上网过程出现网络卡顿及不流畅的情况较多，网络整体质量较差，上网速度较慢；而评分高较少出现此类问题，上网过程更为清晰流畅。
+		\item 在原数据集中，“居民小区”“办公室”“高校”“商业街”“地铁”“农村”“高铁”均为出现问题的场所，本文绘制出上网业务高分组与低分组场所二层饼图，其中外层为低分组，内层为高分组，如\textcolor{blue}{\cref{fig:上网业务高分组与低分组场所二层饼图}}所示。
 		\begin{figure}[H]
 			\centering
 			\includegraphics[width=0.70\textwidth]{上网业务地点.png}
 			\caption{上网业务高分组与低分组场所二层饼图}
 			\label{fig:上网业务高分组与低分组场所二层饼图}
 		\end{figure}
+		\item 在品牌方面，我们发现受调查用户大多均为苹果、华为手机，因此，这里我们统计低分组及高分组中各品牌手机用户占比，如\textcolor{blue}{\cref{tab:上网业务各手机品牌用户占比}}所示。
+		\begin{table}[H]
+			\centering
+			\caption{上网业务各手机品牌用户占比}
+			\scalebox{0.92}{
+			  \begin{tabular}{cccc}
+			  \toprule
+			  \textbf{分组} & \textbf{华为} & \textbf{苹果} & \textbf{其他} \\
+			  \midrule
+			  高分组   & 41.59 \% & 29.36 \% & 29.05 \% \\
+			  低分组   & 21.99 \% & 54.13 \% & 23.88 \% \\
+			  \bottomrule
+			  \end{tabular}}
+			\label{tab:上网业务各手机品牌用户占比}
+		\end{table}
+		由上表，我们可以明显发现，对于上网业务，高分组用户使用的手机品牌多为“华为”，而低分组用户使用的手机品牌多为“苹果”。这与语音业务情况一致。
+		\item 低分组“套外流量费”“套外流量”的平均值皆高于高分组，说明低分组在上网过程中使用流量的次数更多，同时对手机使用较为频繁以至于使用超出了流量套餐以外的费用较高。
+		\item 在先前，本文提及到对于语音业务构造出的三列新数据集，分别为：“出现问题场所或应用总”“网络卡速度慢延时大上不了网总”“质差总”“地点总”，我们分别绘制出高分组与低分组对应的散点分布图\textcolor{blue}{\footnote{由于图幅与语音业务类似，且篇幅原因，本文将其放于附录[A]中，读者可自行查阅。同时下文多数图示由于篇幅过大且与在正文中展示的图示类似，故本文将部分图示放于附录[A]中，读者可自行查阅。}}，在图示中，若散点颜色越深，则说明对应的指标数量也就越多。如\textcolor{blue}{\cref{fig:上网业务高分组问题及场所分布}}\textasciitilde\textcolor{blue}{\cref{fig:上网业务低分组地点分布}}所示。
+		
+		观察上述图示，我们可以发现：对于上网业务，低分组用户在日常生活中使用移动网络时，会在各主要场所，如“高校”“地铁”“办公室”等地点遇到各种类型的网络问题，且遇到的次数在整体上明显多于高分组用户；同时低分组用户及高分组用户都遇到质差问题。
+	\end{itemize}
 	\end{itemize}
 	
 	\subsection{用户评分合理性分析}
@@ -525,21 +555,9 @@
 			\label{fig:语音业务联合分布图}
 	\end{figure}
 
-	观察\textcolor{blue}{\cref{fig:语音业务联合分布图}}，我们可以发现其主对角线图示分别为语音业务中“语音通话整体满意度”、“网络覆盖与信号强度”、“语音通话清晰度”、“语音通话稳定性”四项评价指标的用户评分直方图，我们可以发现用户的评分在区间的两侧部分出现了两次极值，并结合实际考虑，我们可以大致
-然后我们利用上述四项评分的数据绘制联合分布图，即确定一项用户评分可得出其余三项用户评分的分布区间，由于评分中间的用户评分基数较小，故我们主要选取评分两侧分布更为集中，基数更大的用户评分区间进行分析，通过分布图我们可以看出在图的右下和左上两部分用户评分的分布更为分散，为离群点。例如我们选取语音通话整体满意度为1时的情况，对应的网络覆盖与信号强度出现了评分为10的情况，通过计算出同一用户对于不同的评价指标评分的极大值和极小值，若两者之间的差值超过了一定的阈值，即评分相差较大，便可以看做用户评分合理性较低的数据对此进行剔除以提升用户评分数据的准确度和合理性。
-
-	\begin{figure}[H]
-		\centering
-			\centering
-			\includegraphics[width=0.66\linewidth]{[附件2][手机上网整体满意度、网络覆盖与信号强度、手机上网速度、手机上网稳定性]评分联合分布图_纯图版.pdf}
-			\caption{上网业务用户四项评分联合分布图}
-			\label{fig:上网业务联合分布图}
-	\end{figure}
-
-
-
-	对于问题一，我们综合用户评分箱线图、用户评分联合分布图，并结合初赛得出的各项因素重要性程度，对数据进行更深层次分析，筛选出评分合理的用户群体，并依据该数据建立多分类预测模型，预测未知评分的用户集体对于语音及上网业务的满意程度。
-
+	观察\textcolor{blue}{\cref{fig:语音业务联合分布图}}，我们可以发现其主对角线图示分别为语音业务中“语音通话整体满意度”、“网络覆盖与信号强度”、“语音通话清晰度”、“语音通话稳定性”四项评价指标的用户评分直方图，我们可以发现用户的评分在区间的两侧部分出现了两次极值，并结合实际考虑，利用上述四项评分的数据绘制联合分布图，即确定一项用户评分可得出其余三项用户评分的分布区间，由于评分中间的用户评分基数较小，故我们主要选取评分两侧分布更为集中，基数更大的用户评分区间进行分析，通过分布图我们可以看出在图的右下和左上两部分用户评分的分布更为分散，可视为离群点。例如我们选取语音通话整体满意度为1时的情况，对应的网络覆盖与信号强度出现了评分为10的情况，通过计算出同一用户对于不同的评价指标评分的极大值和极小值，若两者之间的差值超过了一定的阈值，即评分相差较大，便可以看做用户评分合理性较低的数据对此进行剔除以提升用户评分数据的准确度和合理性。
+	
+	观察\textcolor{blue}{\cref{fig:上网业务联合分布图}}，我们可以发现用户评分的集中区间与直方图的趋势变化与语音业务用户评分大体相同，并出现了一次较小的峰值在评分为8的部分。于是，同语音业务分析一致，选取两侧用户评分的数据作为我们的主要分析对象，通过观察可以发现离群点同语音业务出现在图的右下，左上两个部分，但相比较与语音业务联合分布图，出现离群点的范围与个数有所缩小，但仍存在同一用户对于不同维度评价指标评分差异较大的现象，对此我们同样进行剔除处理以提升模型预测的效果。
 	
 	\subsection{新数据集的建立}
 	根据上述分析，我们对不合理用户的评分数据进行剔除，主要标准如下：
@@ -955,6 +973,77 @@
 % \addcontentsline{toc}{subsection}{[A]图示}
 % 	% \section*{[A]图表}
 	\noindent{\heiti [A]图表}
+	\begin{figure}[H]
+		\centering
+			\centering
+			\includegraphics[width=0.66\linewidth]{[附件2][手机上网整体满意度、网络覆盖与信号强度、手机上网速度、手机上网稳定性]评分联合分布图_纯图版.pdf}
+			\caption{上网业务用户四项评分联合分布图}
+			\label{fig:上网业务联合分布图}
+	\end{figure}
+	\begin{figure}[H]
+		\centering
+		\begin{minipage}{0.48\linewidth}
+			\centering
+			\includegraphics[width=0.70\linewidth]{[附件2]高分组出现问题场所或应用总分布.pdf}
+			\caption{上网业务高分组问题及场所分布}
+			\label{fig:上网业务高分组问题及场所分布}
+		\end{minipage}
+		%\qquad
+		\begin{minipage}{0.48\linewidth}
+			\centering
+			\includegraphics[width=0.70\linewidth]{[附件2]低分组出现问题场所或应用总分布.pdf}
+			\caption{上网业务低分组问题及场所分布}
+			\label{fig:上网业务低分组问题及场所分布}
+		\end{minipage}
+	\end{figure}
+	\begin{figure}[H]
+		\centering
+		\begin{minipage}{0.48\linewidth}
+			\centering
+			\includegraphics[width=0.70\linewidth]{[附件2]高分组网络卡速度慢延时大上不了网总分布.pdf}
+			\caption{上网业务高分组网络不佳分布}
+			\label{fig:上网业务高分组网络不佳分布}
+		\end{minipage}
+		%\qquad
+		\begin{minipage}{0.48\linewidth}
+			\centering
+			\includegraphics[width=0.70\linewidth]{[附件2]低分组网络卡速度慢延时大上不了网总分布.pdf}
+			\caption{上网业务低分组网络不佳分布}
+			\label{fig:上网业务低分组网络不佳分布}
+		\end{minipage}
+	\end{figure}
+	\begin{figure}[H]
+		\centering
+		\begin{minipage}{0.48\linewidth}
+			\centering
+			\includegraphics[width=0.70\linewidth]{[附件2]高分组质差总分布.pdf}
+			\caption{上网业务高分组质差分布}
+			\label{fig:上网业务高分组质差分布}
+		\end{minipage}
+		%\qquad
+		\begin{minipage}{0.48\linewidth}
+			\centering
+			\includegraphics[width=0.70\linewidth]{[附件2]低分组质差总分布.pdf}
+			\caption{上网业务低分组质差分布}
+			\label{fig:上网业务低分组质差分布}
+		\end{minipage}
+	\end{figure}
+	\begin{figure}[H]
+		\centering
+		\begin{minipage}{0.48\linewidth}
+			\centering
+			\includegraphics[width=0.70\linewidth]{[附件2]高分组地点总分布.pdf}
+			\caption{上网业务高分组地点分布}
+			\label{fig:上网业务高分组地点分布}
+		\end{minipage}
+		%\qquad
+		\begin{minipage}{0.48\linewidth}
+			\centering
+			\includegraphics[width=0.70\linewidth]{[附件2]低分组地点总分布.pdf}
+			\caption{上网业务低分组地点分布}
+			\label{fig:上网业务低分组地点分布}
+		\end{minipage}
+	\end{figure}
 
 \newpage
 % \phantomsection
