@@ -1107,22 +1107,23 @@
 	  \toprule
 	  \textbf{文件（夹）名} & \textbf{描述} \\
 	  \midrule
-	  result.xlsx & 用户评分预测结果 \\
-	  所有量化结果.xlsx & 问题一量化结果 \\
-	  模型参数.xlsx & 各个模型评估参数以及模型选择依据 \\
+	  附件6：result.xlsx & 用户评分预测结果 \\
 	  语音业务词云.txt & 语音业务词云图文本内容 \\
 	  上网业务词云.txt & 上网业务词云图文本内容 \\
-	  语音业务数据分析.ipynb & 语音业务分析Jupyter文件 \\
-	  上网业务数据分析.ipynb & 上网业务分析Jupyter文件 \\
-	  语音业务数据分析.html & 语音业务分析运行结果 \\
-	  上网业务数据分析.html & 上网业务分析运行结果 \\
-	  bg.jpg & 词语底图 \\
-	  figuresNightingaleRoseDiagramF.py & 原始数据用户评分南丁格尔玫瑰图程序 \\
-	  figuresNightingaleRoseDiagramP.py & 预测数据用户评分南丁格尔玫瑰图程序 \\
+	  词云.txt & 语音及上网业务综合词云图文本内容 \\
+	  词云图.py & 语音及上网业务综合词云图代码文件 \\
+	  语音业务用户分析.ipynb & 语音业务评分特征分析Jupyter文件 \\
+	  上网业务用户分析.ipynb & 上网业务评分特征分析Jupyter文件 \\
+	  语音业务数据分析.ipynb & 语音业务模型建立Jupyter文件 \\
+	  上网业务数据分析.ipynb & 上网业务模型建立Jupyter文件 \\
+	  语音业务用户分析.html & 语音业务评分特征分析运行结果 \\
+	  上网业务用户分析.html & 上网业务评分特征分析运行结果 \\
+	  语音业务数据分析.html & 语音业务模型建立运行结果 \\
+	  上网业务数据分析.html & 上网业务模型建立运行结果 \\
+	  bg.jpg & 词云底图 \\
+	  wordcloud.png & 语音及上网业务综合词云图 \\
 	  figuresOne & 语音业务所有图示文件夹 \\
 	  figuresTwo & 上网业务所有图示文件夹 \\
-	  figuresNightingaleRoseDiagramF & 原始数据用户评分南丁格尔玫瑰图示（八项评分） \\
-	  figuresNightingaleRoseDiagramP & 预测数据用户评分南丁格尔玫瑰图示（八项评分） \\
 	  \bottomrule
 	  \end{tabular}}
   	\end{table}
@@ -4625,4 +4626,26 @@ w.to_file("figuresTwo\\wordcloudS.png")
 
 \end{python}
 \newpage
+\textbf{D.5 高频词汇云图代码[综合语音及上网业务]}
+\begin{python}
+import jieba
+import wordcloud
+from matplotlib.image import imread
+
+jieba.setLogLevel(jieba.logging.INFO)
+report = open('词云.txt', 'r', encoding='utf-8').read()
+words = jieba.lcut(report)
+txt = []
+for word in words:
+    if len(word) == 1:
+        continue
+    else:
+        txt.append(word)
+a = ' '.join(txt)
+bg = imread("bg.jpg")
+w = wordcloud.WordCloud(background_color="white", font_path="msyh.ttc", mask=bg)
+w.generate(a)
+w.to_file("wordcloud.png")
+
+\end{python}
 \end{document}
