@@ -558,19 +558,51 @@
 	观察\textcolor{blue}{\cref{fig:语音业务联合分布图}}，我们可以发现其主对角线图示分别为语音业务中“语音通话整体满意度”、“网络覆盖与信号强度”、“语音通话清晰度”、“语音通话稳定性”四项评价指标的用户评分直方图，我们可以发现用户的评分在区间的两侧部分出现了两次极值，并结合实际考虑，利用上述四项评分的数据绘制联合分布图，即确定一项用户评分可得出其余三项用户评分的分布区间，由于评分中间的用户评分基数较小，故我们主要选取评分两侧分布更为集中，基数更大的用户评分区间进行分析，通过分布图我们可以看出在图的右下和左上两部分用户评分的分布更为分散，可视为离群点。例如我们选取语音通话整体满意度为1时的情况，对应的网络覆盖与信号强度出现了评分为10的情况，通过计算出同一用户对于不同的评价指标评分的极大值和极小值，若两者之间的差值超过了一定的阈值，即评分相差较大，便可以看做用户评分合理性较低的数据对此进行剔除以提升用户评分数据的准确度和合理性。
 	
 	观察\textcolor{blue}{\cref{fig:上网业务联合分布图}}，我们可以发现用户评分的集中区间与直方图的趋势变化与语音业务用户评分大体相同，并出现了一次较小的峰值在评分为8的部分。于是，同语音业务分析一致，选取两侧用户评分的数据作为我们的主要分析对象，通过观察可以发现离群点同语音业务出现在图的右下，左上两个部分，但相比较与语音业务联合分布图，出现离群点的范围与个数有所缩小，但仍存在同一用户对于不同维度评价指标评分差异较大的现象，对此我们同样进行剔除处理以提升模型预测的效果。
-	
+
+	此外，我们还绘制出语音及上网业务的整体评分的低分组及高分组与前文我们提及到的特征因素的联合分布直方、散点图，如\textcolor{blue}{\cref{fig:语音业务高分组评分及特征多变量联合分布图}}\textasciitilde\textcolor{blue}{\cref{fig:上网业务低分组评分及特征多变量联合分布图}}所示。结合前文高分组与低分组用户特征的分析，我们可以发现，在数据集中存在少量用户实际体验与其评分结果相差较大，下文，本文将提出剔除不合理评分的依据及措施。
+
 	\subsection{新数据集的建立}
 	根据上述分析，我们对不合理用户的评分数据进行剔除，主要标准如下：
 	\begin{itemize}
-		\item 用户每一业务四项评分之间的差值若超过设定阈值即剔除，在这里，对于语音业务，我们设定“语音通话整体满意度”与“网络覆盖与信号强度”之间差值的阈值为5，“语音通话整体满意度”与其余两项评分之间的差值的阈值为4，“语音通话清晰度”与“语音通话稳定性”评分之间的差值的阈值为3；对于上网业务，我们设定“手机上网整体满意度”与“网络覆盖与信号强度”之间差值的阈值为5，“手机上网整体满意度”与其余两项评分之间的差值的阈值为4，“手机上网速度”与“手机上网稳定性”评分之间的差值的阈值为3。
-		\item 同时也应考虑到非数字类型数据，即附件中“其他，请注明”列数据，在初赛中我们利用其绘制出用户提及高频词汇云图，发现该数据存在利用价值，因此本文有理由认为，若某一用户数据中有效存在该数据内容，即认为该用户对于该业务的评分合理。
+		\item 用户每一业务四项评分之间的差值若超过设定阈值即剔除，在这里，对于语音业务，我们设定“语音通话整体满意度”与“网络覆盖与信号强度”之间差值的阈值为5，“语音通话整体满意度”与其余两项评分之间的差值的阈值为4，“语音通话清晰度”与“语音通话稳定性”评分之间的差值的阈值为3；对于上网业务，我们设定“手机上网整体满意度”与“网络覆盖与信号强度”之间差值的阈值为5，“手机上网整体满意度”与其余两项评分之间的差值的阈值为4，“手机上网速度”与“手机上网稳定性”评分之间的差值的阈值为3；
+		\item 同时也应考虑到非数字类型数据，即附件中“其他，请注明”列数据，在初赛中我们利用其绘制出用户提及高频词汇云图，发现该数据存在利用价值，因此本文有理由认为，若某一用户数据中有效存在该数据内容，即认为该用户对于该业务的评分合理；
+		\item 此外，通过上述对各业务高分组及低分组用户行为特征的分析，我们针对部分少量用户不符整体行为特征的用户进行剔除，保证训练数据集的纯度；
 		\item 这里，我们主要对高分组与低分组用户进行合理性分析，并对该两组不合理情况进行剔除，而对于中间组评分用户，我们认为其评分合理性较高，故不对其进行剔除。
 	\end{itemize}
+	
+	依据上述剔除标准，我们对原数据集进行合理性剔除，剔除结果如\textcolor{blue}{\cref{tab:剔除结果}}所示。\textbf{注：原数据集用户量是经过数据预处理后得到的数量。}
+\begin{table}[H]
+	\centering
+	\caption{数据集合理性剔除结果}
+	  \begin{tabular}{ccccc}
+	  \toprule
+	  \textbf{业务类型} & \textbf{原数据集用户量} & \textbf{被剔除用户量} & \textbf{新数据集用户量} & \textbf{合理用户量占比} \\
+	  \midrule
+	  语音业务  & 5428  & 115   & 5313  & 97.88 \% \\
+	  上网业务  & 7020  & 202   & 6818  & 97.12 \% \\
+	  \bottomrule
+	  \end{tabular}
+	\label{tab:剔除结果}
+\end{table}
+\textbf{后文模型的建立将在新数据集上进行，此外，本文也将会将新数据集上建立的模型效果与初赛模型效果进行对比，分析预测合理性。}
 	\subsection{多分类模型的建立}
 	本文依旧采用初赛使用的六种多分类模型，并对其进行Stacking集成学习。首先多分类基本模型建立理论如下：
 	\begin{itemize}
 		\item \textbf{随机森林（Random Forest, RF）}是由多棵决策树（Decision Tree）进行组合后对预测结果投票或取均值的一种算法\textcolor{blue}{\cite{prf}}。其有分类和回归两种模型，对于本题，我们选择分类模型。其简要过程如\textcolor{blue}{\cref{fig:RF}}所示，算法伪代码如\textcolor{blue}{Algorithm\ref{RFfunction}}所示。
+
+		\begin{figure}[H]
+			\centerline{\includegraphics[scale=0.66]{随机森林简图.pdf}}
+			\caption{随机森林算法简图}\label{fig:RF}
+		\end{figure}
+		
+		对于单棵决策树而言，本文利用\textbf{CART}算法\textcolor{blue}{\cite{prf}}构建。基尼系数是衡量样本集合纯度的指标，当该值越小时，其纯度也就越高。计算公式如下
+		\begin{equation}
+			Gini\left( R_i \right)=\sum\limits_{k=1}^{K}\sum\limits_{k\ne k'}P_k P_{k'}=1-\sum\limits_{k=1}^{K}P_k^2 \label{fGini}
+		\end{equation}
+		其中，$R$为选取出的特征（影响因素），$K$表示在该特征中包含的类别数，$P_k$表示该特征中第$k$类别的出现概率。
 	
+		由上述分析可知，对于单棵决策树而言，其叶子节点的分裂特征为选择的所有特征中基尼系数最小的特征。
+
 		\scalebox{0.88}{
 		\begin{algorithm}[H]
 			\label{RFfunction}
@@ -597,18 +629,7 @@
 			\KwResult{随机森林模型$G=\mathrm{Uniform}\left(g_t\right)$}
 			\caption{随机森林（RF）}
 		\end{algorithm}}
-		\begin{figure}[H]
-			\centerline{\includegraphics[scale=0.80]{随机森林简图.pdf}}
-			\caption{随机森林算法简图}\label{fig:RF}
-		\end{figure}
-		
-		对于单棵决策树而言，本文利用\textbf{CART}算法\textcolor{blue}{\cite{prf}}构建。基尼系数是衡量样本集合纯度的指标，当该值越小时，其纯度也就越高。计算公式如下
-		\begin{equation}
-			Gini\left( R_i \right)=\sum\limits_{k=1}^{K}\sum\limits_{k\ne k'}P_k P_{k'}=1-\sum\limits_{k=1}^{K}P_k^2 \label{fGini}
-		\end{equation}
-		其中，$R$为选取出的特征（影响因素），$K$表示在该特征中包含的类别数，$P_k$表示该特征中第$k$类别的出现概率。
-	
-		由上述分析可知，对于单棵决策树而言，其叶子节点的分裂特征为选择的所有特征中基尼系数最小的特征。
+
 		\item \textbf{极端梯度提升（eXtreme Gradient Boosting, XGBoost）}。XGBoost算法是一种基于树模型的优化模型，其将弱分类器组合，训练出一个较强的分类器。该算法通过多次迭代，生成一个新的树模型用于优化前一个树模型，随着迭代次数的增多，该模型的预测精度也会相应提高\textcolor{blue}{\cite{pxgboost1}}。
 
 		记通过数据处理后的数据集特征为$R\left(x_{ij}\right)_{m\times n}$，表示其包含$m$个用户，$n$个特征，在训练中形成的CART树的集合记为$F=\left\{f\left(x\right)=w_{q\left(x\right)},q:\mathbf{R}^n\to T,w\in \mathbf{R}^T\right\}$，其中$q$为树模型的叶节点决策规划，$T$为某一树模型叶节点数量，$w$为叶节点对应的得分\textcolor{blue}{\cite{pxgboost2}}。对于预测的$y$值，其计算公式为
@@ -644,7 +665,7 @@
 	
 		通过上述分析，我们可以得到XGBoost算法简图，如\textcolor{blue}{\cref{fig:XGBoost}}所示。
 		\begin{figure}[h!t]
-			\centerline{\includegraphics[scale=0.60]{XGBoost简图.pdf}}
+			\centerline{\includegraphics[scale=0.56]{XGBoost简图.pdf}}
 			\caption{XGBoost算法简图}\label{fig:XGBoost}
 		\end{figure}
 		\item \textbf{K-近邻（K Nearest Neighbor, KNN）}。KNN算法的主要思想为：在出现新样本时从现有的训练数据中找到与其相对应的最接近的$K$个样本，并根据最相似的类别出现的样本进行分类。基于多数$K$个样本所属的类别来分辨待分类的数据集所属的类别\textcolor{blue}{\cite{pknn}}。接近度由两点之间的距离函数给出属性空间中的点决定。距离函数通常使用两个点之间的标准欧几里得距离。欧氏距离的计算公式如下
@@ -655,7 +676,7 @@
 		
 		\item \textbf{支持向量机（Support Vector Machine, SVM）}。SVM建立在结构风险最小原理及Vapnik-Chervonenkis理论基础之上\textcolor{blue}{\cite{psvm}}，以有限的数据信息，在数据样本中找出合适区分类别的决策分界面，且保证边界点与分界面尽可能远，即需要再找出合适的边界分界面，该算法示意图如\textcolor{blue}{\cref{fig:svmpicture}}所示。
 		\begin{figure}[h!t]
-			\centerline{\includegraphics[scale=0.88]{SVM示意图.pdf}}
+			\centerline{\includegraphics[scale=0.60]{SVM示意图.pdf}}
 			\caption{SVM示意图}\label{fig:svmpicture}
 		\end{figure}
 		而由于SVM多应用于解决二分类问题，且我们需要建立多分类模型，因此需要对其进行相应的改进。本文采用OVR（One Versus Rest）方法，将该问题改进为多个二分类问题\textcolor{blue}{\cite{psvm}}。在模型的训练时，任意将某一类别记为一类，其余类别记为另一类别，依次下去，建立出多分类的SVM模型。而对于核函数的选择，本文选择高斯核函数进行求解，其定义公式如下
@@ -702,7 +723,7 @@
 		\caption{Stacking集成学习}
 	\end{algorithm}}
 	\begin{figure}[H]
-		\centerline{\includegraphics[scale=0.56]{Stacking示意图.pdf}}
+		\centerline{\includegraphics[scale=0.50]{Stacking示意图.pdf}}
 		\caption{Stacking集成学习示意图}\label{fig:StackingPicture}
 	\end{figure}
 	\subsection{用户评分预测}
@@ -876,13 +897,6 @@
 		根据上图结果，我们可以发现，模型二预测用户对于“语音业务-语音通话整体满意度”的评分结果中，模型对各评分预测的$\mathrm{AUC}\geqslant0.50$，即以$y=x$为分界线。同时，我们可以发现“macro-average ROC curve”指标，其是通过Macro方法求得，在上文中我们提到，该数据样本的标签分类是严重不平衡的，该方法能够平等对待每一项分类，在此方法下，我们可以对于小样本类别的准确率有一定把握，其曲线下面积$\mathrm{AUC}=0.62$，位于分界线左上，预测效果良好；而对于“micro-average ROC curve”指标，其$\mathrm{AUC}=0.84$，这指的是利用Micro方法求得曲线，曲线下面积为0.84，曲线下面积较大，且曲线有向左上角最优点靠近的趋势，可以说明模型整体能力较优。
 	\end{itemize}
 
-
-	以箱线图所示，用户评分，划分高分组与低分组。
-	思路：绘制评分联合分布图，观察用户行为。得出异常点，初始确定用户错评，乱评等不合理行为的依据。
-	语音、上网业务各四项评分，联合确定高分组及低分组，筛选出高分及低分组，对数据进行可视化、描述性分析，得出高分组及低分组的特征。综合之前的初步确定，则得出用户错评的依据，对数据进行综合筛选，对筛选出的数据与原始数据进行对比，确定其合理性。
-	重新学习、预测！分析合理性。
-
-	非技术性报告
 	\section{模型的评价与推广}
 	\subsection{模型的评价}
 	\begin{itemize}
@@ -908,7 +922,6 @@
 				\item 对于部分评分，特征构造出的因素有一定局限性；
 				\item 用户评分为主观性结果，本文大多模型选用客观性较强的模型进行解决，对数据利用有一定失真。
 			\end{enumerate}
-		\newpage
 		\item \textbf{模型的改进}：
 			\begin{enumerate}
 				\item 在收集数据时，问卷设计需要更加合理化，多方面考虑其余未考虑到的影响因素对用户评分的影响；
@@ -1044,7 +1057,34 @@
 			\label{fig:上网业务低分组地点分布}
 		\end{minipage}
 	\end{figure}
-
+	\begin{figure}[H]
+		\centering
+			\centering
+			\includegraphics[width=0.66\linewidth]{[附件1]高分组[场所合计、出现问题合计、脱网次数、mos质差次数、未接通掉话次数合计]评分多变量联合分布图.pdf}
+			\caption{语音业务高分组评分及特征多变量联合分布图}
+			\label{fig:语音业务高分组评分及特征多变量联合分布图}
+	\end{figure}	
+	\begin{figure}[H]
+		\centering
+			\centering
+			\includegraphics[width=0.66\linewidth]{[附件1]低分组[场所合计、出现问题合计、脱网次数、mos质差次数、未接通掉话次数合计]评分多变量联合分布图.pdf}
+			\caption{语音业务低分组评分及特征多变量联合分布图}
+			\label{fig:语音业务低分组评分及特征多变量联合分布图}
+	\end{figure}
+	\begin{figure}[H]
+		\centering
+			\centering
+			\includegraphics[width=0.66\linewidth]{[附件2]高分组[出现问题场所或应用总、网络卡速度慢延时大上不了网总、质差总、地点总]评分多变量联合分布图.pdf}
+			\caption{上网业务高分组评分及特征多变量联合分布图}
+			\label{fig:上网业务高分组评分及特征多变量联合分布图}
+	\end{figure}	
+	\begin{figure}[H]
+		\centering
+			\centering
+			\includegraphics[width=0.66\linewidth]{[附件2]低分组[出现问题场所或应用总、网络卡速度慢延时大上不了网总、质差总、地点总]评分多变量联合分布图.pdf}
+			\caption{上网业务低分组评分及特征多变量联合分布图}
+			\label{fig:上网业务低分组评分及特征多变量联合分布图}
+	\end{figure}
 \newpage
 % \phantomsection
 % \addcontentsline{toc}{subsection}{[B]支撑文件列表}
