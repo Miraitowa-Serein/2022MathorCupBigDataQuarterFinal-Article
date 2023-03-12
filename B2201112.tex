@@ -1171,27 +1171,3452 @@
 	% \section*{[D]问题解决源程序}
 \noindent{\heiti [D]问题解决源程序}
 
-% \phantomsection
-% \addcontentsline{toc}{subsubsection}{D.1 语音业务分析代码[针对附件1与附件3]}
-\textbf{D.1 语音业务分析代码[针对附件1与附件3]}
+\textbf{D.1 语音业务用户分析代码[针对附件1]}
 \begin{python}
+#!/usr/bin/env python
+# coding: utf-8
+
+# # 语音业务 用户行为分析
+
+# ## 导入库
+
+# In[1]:
+
+
+import pandas as pd
+import seaborn as sns
+
+
+# ## 数据预处理
+
+# In[2]:
+
+
+dataOne=pd.read_excel("附件1语音业务用户满意度数据.xlsx",sheet_name='Sheet1')
+dataThree=pd.read_excel("附件3语音业务用户满意度预测数据.xlsx",sheet_name='语音')
+
+
+# In[3]:
+
+
+dataOneColumnsList=list(dataOne.columns)
+dataThreeColumnsList=list(dataThree.columns)
+
+
+# In[4]:
+
+
+dataOneColumnsList
+
+
+# In[5]:
+
+
+dataThreeColumnsList
+
+
+# In[6]:
+
+
+set(dataOneColumnsList)&set(dataThreeColumnsList)
+
+
+# In[7]:
+
+
+dataOne['资费投诉']=dataOne.loc[:, ['家宽投诉','资费投诉']].apply(lambda x1:x1.sum(), axis=1)
+dataOne.drop(['家宽投诉'], axis=1, inplace=True)
+dataOne.rename(columns={'资费投诉':'是否投诉'}, inplace=True)
+dataOne
+
+
+# In[8]:
+
+
+dataOneColumnsList=list(dataOne.columns)
+dataOneColumnsList
+
+
+# In[9]:
+
+
+dataThreeColumnsList=list(dataThree.columns)
+dataThreeColumnsList
+
+
+# In[10]:
+
+
+set(dataOneColumnsList)-set(dataThreeColumnsList)
+
+
+# In[11]:
+
+
+dataOne.drop(['用户id',
+              '用户描述',
+              '用户描述.1',
+              '重定向次数',
+              '重定向驻留时长',
+              '语音方式',
+              '是否去过营业厅',
+              'ARPU（家庭宽带）',
+              '是否实名登记用户',
+              '当月欠费金额',
+              '前第3个月欠费金额',
+              '终端品牌类型'], axis=1, inplace=True)
+dataOne
+
+
+# In[12]:
+
+
+dataOne.info()
+
+
+# In[13]:
+
+
+dataOne.isnull().sum()
+
+
+# In[14]:
+
+
+dataOne['外省流量占比']=dataOne['外省流量占比'].fillna(0)
+dataOne["是否关怀用户"]=dataOne["是否关怀用户"].fillna(0)
+dataOne["外省流量占比"]=dataOne["外省流量占比"].astype(str).replace('%','')
+dataOne["外省语音占比"]=dataOne["外省语音占比"].astype(str).replace('%','')
+dataOne
+
+
+# In[15]:
+
+
+dataOne.replace({"是否遇到过网络问题":{2:0},
+                 "居民小区":{-1:0},
+                 "办公室":{-1:0,2:1},
+                 "高校":{-1:0,3:1},
+                 "商业街":{-1:0,4:1},
+                 "地铁":{-1:0,5:1},
+                 "农村":{-1:0,6:1},
+                 "高铁":{-1:0,7:1},
+                 "其他，请注明":{-1:0,98:1},
+                 "手机没有信号":{-1:0},
+                 "有信号无法拨通":{-1:0,2:1},
+                 "通话过程中突然中断":{-1:0,3:1},
+                 "通话中有杂音、听不清、断断续续":{-1:0,4:1},
+                 "串线":{-1:0,5:1},
+                 "通话过程中一方听不见":{-1:0,6:1},
+                 "其他，请注明.1":{-1:0,98:1},
+                 "是否关怀用户":{'是':1},
+                 "是否4G网络客户（本地剔除物联网）":{'是':1,"否":0},
+                 "是否5G网络客户":{'是':1,"否":0},
+                 "客户星级标识":{'未评级':0,'准星':1,'一星':2,'二星':3,'三星':4,'银卡':5,'金卡':6,'白金卡':7,'钻石卡':8}
+                 }, inplace=True)
+dataOne
+
+
+# In[16]:
+
+
+dataOne.isnull().sum()
+
+
+# In[17]:
+
+
+dataOneMiss=dataOne.isnull()
+dataOne[dataOneMiss.any(axis=1)==True]
+
+
+# In[18]:
+
+
+dataOne.dropna(inplace=True)
+dataOne=dataOne.reset_index(drop=True)
+dataOne
+
+
+# In[19]:
+
+
+dataOne.dtypes
+
+
+# In[20]:
+
+
+dataOne['外省语音占比'] = dataOne['外省语音占比'].astype('float64')
+dataOne['外省流量占比'] = dataOne['外省流量占比'].astype('float64')
+dataOne['是否4G网络客户（本地剔除物联网）'] = dataOne['是否4G网络客户（本地剔除物联网）'].astype('int64')
+dataOne['4\\5G用户'] = dataOne['4\\5G用户'].astype(str)
+dataOne['终端品牌'] = dataOne['终端品牌'].astype(str)
+dataOne
+
+
+# In[21]:
+
+
+import sklearn.preprocessing as sp
+le=sp.LabelEncoder()
+
+OverallSatisfactionVoiceCalls=le.fit_transform(dataOne["语音通话整体满意度"])
+NetworkCoverageSignalStrength=le.fit_transform(dataOne["网络覆盖与信号强度"])
+VoiceCallDefinition=le.fit_transform(dataOne["语音通话清晰度"])
+VoiceCallStability=le.fit_transform(dataOne["语音通话稳定性"])
+
+FourFiveUser=le.fit_transform(dataOne["4\\5G用户"])
+TerminalBrand=le.fit_transform(dataOne["终端品牌"])
+
+dataOne["语音通话整体满意度"]=pd.DataFrame(OverallSatisfactionVoiceCalls)
+dataOne["网络覆盖与信号强度"]=pd.DataFrame(NetworkCoverageSignalStrength)
+dataOne["语音通话清晰度"]=pd.DataFrame(VoiceCallDefinition)
+dataOne["语音通话稳定性"]=pd.DataFrame(VoiceCallStability)
+
+dataOne["4\\5G用户"]=pd.DataFrame(FourFiveUser)
+dataOne["终端品牌"]=pd.DataFrame(TerminalBrand)
+dataOne
+
+
+# In[22]:
+
+
+def complain(x):
+    if x!=0:
+        return 1
+    else:
+        return 0
+
+
+for i in range(len(dataOne)):
+    dataOne.loc[i, '是否投诉']=complain(dataOne.loc[i, '是否投诉'])
+
+dataOne
+
+
+# In[23]:
+
+
+dataOne['是否5G网络客户'] = dataOne['是否5G网络客户'].astype('int64')
+dataOne['客户星级标识'] = dataOne['客户星级标识'].astype('int64')
+dataOne
+
+
+# In[24]:
+
+
+dataOne.describe()
+
+
+# ## 用户行为分析
+
+# In[25]:
+
+
+import matplotlib.pyplot as plt
+
+plt.rcParams['font.sans-serif']=['SimHei']
+plt.rcParams['axes.unicode_minus']=False
+
+box_data = dataOne[['语音通话整体满意度',
+                    '网络覆盖与信号强度',
+                    '语音通话清晰度',
+                    '语音通话稳定性',]]
+plt.grid(True)
+plt.boxplot(box_data,
+            notch = True,
+            sym = "b+",
+            vert = False,
+            showmeans = True,
+            labels = ['语音通话整体满意度',
+                      '网络覆盖与信号强度',
+                      '语音通话清晰度',
+                      '语音通话稳定性',])
+plt.yticks(size=14)
+plt.xticks(size=14, font='Times New Roman')
+plt.tight_layout()
+plt.savefig('figuresOne\\[附件1][语音通话整体满意度、网络覆盖与信号强度、语音通话清晰度、语音通话稳定性]评分箱线图.pdf')
+
+
+# In[26]:
+
+
+sns.pairplot(dataOne[['语音通话整体满意度','网络覆盖与信号强度','语音通话清晰度','语音通话稳定性']],kind='scatter',diag_kind='kde')
+plt.savefig('figuresOne\\[附件1][语音通话整体满意度、网络覆盖与信号强度、语音通话清晰度、语音通话稳定性]评分联合分布图.pdf',bbox_inches='tight')
+
+
+# ## 划分高分组和低分组
+
+# In[27]:
+
+
+dataOne['场所合计']=dataOne.loc[:,['居民小区','办公室', '高校', '商业街', '地铁', '农村', '高铁', '其他，请注明']].apply(lambda x1:x1.sum(),axis=1)
+dataOne['出现问题合计']=dataOne.loc[:,['手机没有信号','有信号无法拨通','通话过程中突然中断','通话中有杂音、听不清、断断续续','串线','通话过程中一方听不见','其他，请注明.1']].apply(lambda x1:x1.sum(),axis=1)
+dataOne['脱网次数、mos质差次数、未接通掉话次数合计']=dataOne.loc[:,['脱网次数','mos质差次数','未接通掉话次数']].apply(lambda x1:x1.sum(),axis=1)
+dataOne['整体评分']=dataOne.loc[:,['语音通话整体满意度','网络覆盖与信号强度','语音通话清晰度','语音通话稳定性']].apply(lambda x1:round(x1.mean()),axis=1)
+dataOne
+
+
+# In[28]:
+
+
+dataOneHigh = dataOne[(dataOne['语音通话整体满意度']>=7)&(dataOne['网络覆盖与信号强度']>=7)&(dataOne['语音通话清晰度']>=7)&(dataOne['语音通话稳定性']>=7)]
+dataOneLow = dataOne[(dataOne['语音通话整体满意度']<=4)&(dataOne['网络覆盖与信号强度']<=4)&(dataOne['语音通话清晰度']<=4)&(dataOne['语音通话稳定性']<=4)]
+
+
+# In[29]:
+
+
+dataOneHigh.describe()
+
+
+# In[30]:
+
+
+dataOneLow.describe()
+
+
+# ## 特征分析
+
+# In[31]:
+
+
+sns.pairplot(dataOneHigh[['整体评分','场所合计','出现问题合计','脱网次数、mos质差次数、未接通掉话次数合计']],kind='scatter',diag_kind='kde')
+plt.savefig('figuresOne\\[附件1]高分组[场所合计、出现问题合计、脱网次数、mos质差次数、未接通掉话次数合计]评分多变量联合分布图.pdf',bbox_inches='tight')
+
+
+# In[32]:
+
+
+sns.pairplot(dataOneLow[['整体评分','场所合计','出现问题合计','脱网次数、mos质差次数、未接通掉话次数合计']],kind='scatter',diag_kind='kde')
+plt.savefig('figuresOne\\[附件1]低分组[场所合计、出现问题合计、脱网次数、mos质差次数、未接通掉话次数合计]评分多变量联合分布图.pdf',bbox_inches='tight')
+
+
+# In[33]:
+
+
+sns.jointplot(x='出现问题合计', y='整体评分', data=dataOneHigh, kind='hex')
+plt.savefig('figuresOne\\[附件1]高分组出现问题合计分布情况.pdf',bbox_inches='tight')
+
+
+# In[34]:
+
+
+sns.jointplot(x='出现问题合计', y='整体评分', data=dataOneLow, kind='hex',color='r')
+plt.savefig('figuresOne\\[附件1]低分组出现问题合计分布情况.pdf',bbox_inches='tight')
+
+
+# In[35]:
+
+
+sns.jointplot(x='场所合计',y='整体评分',data=dataOneHigh,kind='hex')
+plt.savefig('figuresOne\\[附件1]高分组场所合计分布情况.pdf',bbox_inches='tight')
+
+
+# In[36]:
+
+
+sns.jointplot(x='场所合计',y='整体评分',data=dataOneLow,kind='hex',color='r')
+plt.savefig('figuresOne\\[附件1]低分组场所合计分布情况.pdf',bbox_inches='tight')
+
+
+# In[37]:
+
+
+sns.jointplot(x='脱网次数、mos质差次数、未接通掉话次数合计',y='整体评分',data=dataOneHigh,kind='hex')
+plt.savefig('figuresOne\\[附件1]高分组脱网次数、mos质差次数、未接通掉话次数合计分布情况.pdf',bbox_inches='tight')
+
+
+# In[38]:
+
+
+sns.jointplot(x='脱网次数、mos质差次数、未接通掉话次数合计',y='整体评分',data=dataOneLow,kind='hex',color='r')
+plt.savefig('figuresOne\\[附件1]低分组脱网次数、mos质差次数、未接通掉话次数合计分布情况.pdf',bbox_inches='tight')
+
+
+# In[39]:
+
+
+dataOneHigh['终端品牌'].mode()
+
+
+# In[40]:
+
+
+dataOneLow['终端品牌'].mode()
+
+
+# ## 异常用户评分数据剔除
+
+# In[41]:
+
+
+dataOneSample=dataOne[((dataOne['其他，请注明']==1)|(dataOne['其他，请注明.1']==1))|((abs(dataOne['语音通话整体满意度']-dataOne['网络覆盖与信号强度'])<=5)&(abs(dataOne['语音通话整体满意度']-dataOne['语音通话清晰度'])<=4)&(abs(dataOne['语音通话整体满意度']-dataOne['语音通话稳定性'])<=4)&(dataOne['网络覆盖与信号强度']-dataOne['语音通话清晰度']<=4)&(dataOne['网络覆盖与信号强度']-dataOne['语音通话稳定性']<=4)&(dataOne['语音通话清晰度']-dataOne['语音通话稳定性']<=3))]
+dataOneSample
+
+
+# In[42]:
+
+
+dataOne
+
+
+# In[43]:
+
+
+sns.heatmap(dataOne[['语音通话整体满意度','网络覆盖与信号强度','语音通话清晰度','语音通话稳定性']].corr(method='pearson'),linewidths=0.1,vmax=1.0, square=True,linecolor='white', annot=True)
+plt.title('语音业务评分皮尔逊相关系数热力图')
+plt.savefig('figuresOne\\[附件1]语音业务评分皮尔逊相关系数热力图.pdf',bbox_inches='tight')
+
 \end{python}
 \newpage
-% \phantomsection
-% \addcontentsline{toc}{subsubsection}{D.2 上网业务分析代码[针对附件2与附件4]}
-\textbf{D.2 上网业务分析代码[针对附件2与附件4]}
+\textbf{D.2 语音业务数据分析代码[针对附件1与附件3]}
 \begin{python}
+#!/usr/bin/env python
+# coding: utf-8
+
+# # 2022 MathorCup 大数据 IssueB 复赛
+
+# # 语音业务数据分析
+
+# ## 导入第三方库
+
+# In[1]:
+
+
+import pandas as pd
+import numpy as np
+import sklearn.preprocessing as sp
+import warnings
+warnings.filterwarnings("ignore")
+
+
+# ## 读取经过剔除数据的附件1与附件3
+
+# In[2]:
+
+
+dataOne=pd.read_csv("语音业务Sample.csv",encoding='gbk')
+dataThree=pd.read_excel("附件3语音业务用户满意度预测数据.xlsx",sheet_name='语音')
+
+
+# In[3]:
+
+
+dataOne
+
+
+# In[4]:
+
+
+dataThree
+
+
+# ## 数据预处理
+
+# ### 数据标准化
+
+# In[5]:
+
+
+StandardTransform = dataOne[['脱网次数','mos质差次数','未接通掉话次数','4\\5G用户', '套外流量（MB）','套外流量费（元）','语音通话-时长（分钟）','省际漫游-时长（分钟）', '终端品牌','当月ARPU','当月MOU', '前3月ARPU','前3月MOU','GPRS总流量（KB）','GPRS-国内漫游-流量（KB）', '客户星级标识','场所合计','出现问题合计','脱网次数、mos质差次数、未接通掉话次数合计']]
+StandardTransformScaler = sp.StandardScaler()
+StandardTransformScaler = StandardTransformScaler.fit(StandardTransform)
+StandardTransform = StandardTransformScaler.transform(StandardTransform)
+StandardTransform = pd.DataFrame(StandardTransform)
+StandardTransform.columns = ['脱网次数','mos质差次数','未接通掉话次数','4\\5G用户', '套外流量（MB）','套外流量费（元）','语音通话-时长（分钟）','省际漫游-时长（分钟）', '终端品牌','当月ARPU','当月MOU', '前3月ARPU','前3月MOU','GPRS总流量（KB）','GPRS-国内漫游-流量（KB）', '客户星级标识','场所合计','出现问题合计','脱网次数、mos质差次数、未接通掉话次数合计']
+StandardTransform
+
+
+# In[6]:
+
+
+dataOneLeave=dataOne.loc[:,~dataOne.columns.isin(['脱网次数','mos质差次数','未接通掉话次数','4\\5G用户', '套外流量（MB）','套外流量费（元）','语音通话-时长（分钟）','省际漫游-时长（分钟）', '终端品牌','当月ARPU','当月MOU', '前3月ARPU','前3月MOU','GPRS总流量（KB）','GPRS-国内漫游-流量（KB）', '客户星级标识','场所合计','出现问题合计','脱网次数、mos质差次数、未接通掉话次数合计'])]
+
+
+# In[7]:
+
+
+dataOneNewStandard=pd.concat([dataOneLeave, StandardTransform],axis=1)
+dataOneNewStandard
+
+
+# In[8]:
+
+
+dataOneNewStandard.columns=['语音通话整体满意度','网络覆盖与信号强度','语音通话清晰度','语音通话稳定性', '是否遇到过网络问题','居民小区','办公室','高校', '商业街','地铁','农村','高铁', '其他，请注明','手机没有信号','有信号无法拨通','通话过程中突然中断', '通话中有杂音、听不清、断断续续','串线','通话过程中一方听不见','其他，请注明.1', '是否投诉','是否关怀用户','是否4G网络客户（本地剔除物联网）','外省语音占比', '外省流量占比','是否5G网络客户','脱网次数','mos质差次数', '未接通掉话次数','4\\5G用户','套外流量（MB）','套外流量费（元）', '语音通话-时长（分钟）','省际漫游-时长（分钟）','终端品牌', '当月ARPU','当月MOU','前3月ARPU','前3月MOU', 'GPRS总流量（KB）','GPRS-国内漫游-流量（KB）','客户星级标识','场所合计','出现问题合计','脱网次数、mos质差次数、未接通掉话次数合计']
+dataOneNewStandard
+
+
+# ## 机器学习
+
+# ### "语音通话整体满意度"学习
+
+# In[9]:
+
+
+from sklearn.model_selection import train_test_split
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import mean_absolute_error
+from sklearn.metrics import mean_squared_error
+
+
+# In[10]:
+
+
+XdataOneFirst=dataOneNewStandard.loc[:,~dataOneNewStandard.columns.isin(['语音通话整体满意度','网络覆盖与信号强度','语音通话清晰度','语音通话稳定性'])]
+ydataOneFirst=dataOneNewStandard['语音通话整体满意度']
+XdataOneFirst_train, XdataOneFirst_test, ydataOneFirst_train, ydataOneFirst_test = train_test_split(XdataOneFirst, ydataOneFirst, test_size=0.2, random_state=2022)
+
+
+# #### 决策树，随机森林
+
+# In[11]:
+
+
+DecisionTreeFirst = DecisionTreeClassifier(random_state=2022)
+RandomForestFirst = RandomForestClassifier(random_state=2022)
+DecisionTreeFirst = DecisionTreeFirst.fit(XdataOneFirst_train, ydataOneFirst_train)
+RandomForestFirst = RandomForestFirst.fit(XdataOneFirst_train, ydataOneFirst_train)
+RandomForestFirst_score = RandomForestFirst.score(XdataOneFirst_test, ydataOneFirst_test)
+RandomForestFirst_score
+
+
+# #### XGBoost
+
+# In[12]:
+
+
+from xgboost import XGBClassifier
+
+XGBFirst = XGBClassifier(learning_rate=0.01,
+                         n_estimators=14,
+                         max_depth=5,
+                         min_child_weight=1,
+                         gamma=0.,
+                         subsample=1,
+                         colsample_btree=1,
+                         scale_pos_weight=1,
+                         random_state=2022,
+                         slient=0)
+XGBFirst.fit(XdataOneFirst_train, ydataOneFirst_train)
+XGBFirst_score = XGBFirst.score(XdataOneFirst_test, ydataOneFirst_test)
+XGBFirst_score
+
+
+# #### KNN
+
+# In[13]:
+
+
+from sklearn.neighbors import KNeighborsClassifier
+
+KNNFirst = KNeighborsClassifier()
+KNNFirst.fit(XdataOneFirst_train, ydataOneFirst_train)
+KNNFirst_score = KNNFirst.score(XdataOneFirst_test, ydataOneFirst_test)
+KNNFirst_score
+
+
+# In[14]:
+
+
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.model_selection import GridSearchCV
+
+KNN_turing_param_grid = [{'weights':['uniform'],
+                          'n_neighbors':[k for k in range(2,20)]},
+                         {'weights':['distance'],
+                          'n_neighbors':[k for k in range(2,20)],
+                          'p':[p for p in range(1,5)]}]
+KNN_turing = KNeighborsClassifier()
+KNN_turing_grid_search = GridSearchCV(KNN_turing,
+                                      param_grid = KNN_turing_param_grid,
+                                      n_jobs = -1,
+                                      verbose = 2)
+KNN_turing_grid_search.fit(XdataOneFirst_train, ydataOneFirst_train)
+
+
+# In[15]:
+
+
+KNN_turing_grid_search.best_score_
+
+
+# In[16]:
+
+
+KNN_turing_grid_search.best_params_
+
+
+# In[17]:
+
+
+KNNFirst_new = KNeighborsClassifier(n_neighbors=25, p=2, weights='distance')
+KNNFirst_new.fit(XdataOneFirst_train, ydataOneFirst_train)
+KNNFirst_new_score = KNNFirst_new.score(XdataOneFirst_test, ydataOneFirst_test)
+KNNFirst_new_score
+
+
+# #### 支持向量机
+
+# In[18]:
+
+
+from sklearn.svm import SVC
+
+SVMFirst = SVC(random_state=2022)
+SVMFirst.fit(XdataOneFirst_train, ydataOneFirst_train)
+SVMFirst_score = SVMFirst.score(XdataOneFirst_test, ydataOneFirst_test)
+SVMFirst_score
+
+
+# #### lightgbm
+
+# In[19]:
+
+
+from lightgbm import LGBMClassifier
+LightgbmFirst = LGBMClassifier(learning_rate = 0.1,
+                               lambda_l1=0.1,
+                               lambda_l2=0.2,
+                               max_depth=4,
+                               objective='multiclass',
+                               num_class=3,
+                               random_state=2022)
+LightgbmFirst.fit(XdataOneFirst_train, ydataOneFirst_train)
+LightgbmFirst_score = LightgbmFirst.score(XdataOneFirst_test, ydataOneFirst_test)
+LightgbmFirst_score
+
+
+# #### 逻辑回归
+
+# In[20]:
+
+
+from sklearn.linear_model import LogisticRegression
+LogisticRegressionFirst = LogisticRegression(multi_class="multinomial", solver="newton-cg", max_iter=1000)
+LogisticRegressionFirst = LogisticRegressionFirst.fit(XdataOneFirst_train, ydataOneFirst_train)
+LogisticRegressionFirst_score = LogisticRegressionFirst.score(XdataOneFirst_test, ydataOneFirst_test)
+LogisticRegressionFirst_score
+
+
+# In[21]:
+
+
+print(f'模型一中RF平均绝对误差：'
+      f'{mean_absolute_error(ydataOneFirst_test, RandomForestFirst.predict(XdataOneFirst_test), sample_weight=None, multioutput="uniform_average")}\n'
+      f'模型一中RF均方误差：'
+      f'{mean_squared_error(ydataOneFirst_test, RandomForestFirst.predict(XdataOneFirst_test), sample_weight=None, multioutput="uniform_average")}')
+print(f'模型一中XGBoost平均绝对误差：'
+      f'{mean_absolute_error(ydataOneFirst_test, XGBFirst.predict(XdataOneFirst_test), sample_weight=None, multioutput="uniform_average")}\n'
+      f'模型一中XGBoost均方误差：'
+      f'{mean_squared_error(ydataOneFirst_test, XGBFirst.predict(XdataOneFirst_test), sample_weight=None, multioutput="uniform_average")}')
+print(f'模型一中KNN平均绝对误差：'
+      f'{mean_absolute_error(ydataOneFirst_test, KNNFirst_new.predict(XdataOneFirst_test), sample_weight=None, multioutput="uniform_average")}\n'
+      f'模型一中KNN均方误差：'
+      f'{mean_squared_error(ydataOneFirst_test, KNNFirst_new.predict(XdataOneFirst_test), sample_weight=None, multioutput="uniform_average")}')
+print(f'模型一中SVM平均绝对误差：'
+      f'{mean_absolute_error(ydataOneFirst_test, SVMFirst.predict(XdataOneFirst_test), sample_weight=None, multioutput="uniform_average")}\n'
+      f'模型一中SVM均方误差：'
+      f'{mean_squared_error(ydataOneFirst_test, SVMFirst.predict(XdataOneFirst_test), sample_weight=None, multioutput="uniform_average")}')
+print(f'模型一中LightGBM平均绝对误差：'
+      f'{mean_absolute_error(ydataOneFirst_test, LightgbmFirst.predict(XdataOneFirst_test), sample_weight=None, multioutput="uniform_average")}\n'
+      f'模型一中LightGBM均方误差：'
+      f'{mean_squared_error(ydataOneFirst_test, LightgbmFirst.predict(XdataOneFirst_test), sample_weight=None, multioutput="uniform_average")}')
+print(f'模型一中LR平均绝对误差：'
+      f'{mean_absolute_error(ydataOneFirst_test, LogisticRegressionFirst.predict(XdataOneFirst_test), sample_weight=None, multioutput="uniform_average")}\n'
+      f'模型一中LR均方误差：'
+      f'{mean_squared_error(ydataOneFirst_test, LogisticRegressionFirst.predict(XdataOneFirst_test), sample_weight=None, multioutput="uniform_average")}')
+
+
+# #### 集成学习
+
+# In[22]:
+
+
+from mlxtend.classifier import StackingCVClassifier
+FirstModel = StackingCVClassifier(classifiers=[LogisticRegressionFirst,XGBFirst,KNNFirst_new,SVMFirst,LightgbmFirst], meta_classifier=RandomForestClassifier(random_state=2022), random_state=2022, cv=5)
+FirstModel.fit(XdataOneFirst_train, ydataOneFirst_train)
+FirstModel_score = FirstModel.score(XdataOneFirst_test, ydataOneFirst_test)
+FirstModel_score
+
+
+# In[23]:
+
+
+print(f'模型一平均绝对误差：'
+      f'{mean_absolute_error(ydataOneFirst_test, FirstModel.predict(XdataOneFirst_test), sample_weight=None, multioutput="uniform_average")}\n'
+      f'模型一均方误差：'
+      f'{mean_squared_error(ydataOneFirst_test, FirstModel.predict(XdataOneFirst_test), sample_weight=None, multioutput="uniform_average")}')
+
+
+# ### "网络覆盖与信号强度"学习
+
+# In[24]:
+
+
+XdataOneSecond=dataOneNewStandard.loc[:,~dataOneNewStandard.columns.isin(['语音通话整体满意度','网络覆盖与信号强度','语音通话清晰度','语音通话稳定性'])]
+ydataOneSecond=dataOneNewStandard['网络覆盖与信号强度']
+XdataOneSecond_train, XdataOneSecond_test, ydataOneSecond_train, ydataOneSecond_test = train_test_split(XdataOneSecond, ydataOneSecond, test_size=0.2, random_state=2022)
+
+
+# #### 决策树、随机森林
+
+# In[25]:
+
+
+DecisionTreeSecond = DecisionTreeClassifier(random_state=2022)
+RandomForestSecond = RandomForestClassifier(random_state=2022)
+DecisionTreeSecond = DecisionTreeSecond.fit(XdataOneSecond_train, ydataOneSecond_train)
+RandomForestSecond = RandomForestSecond.fit(XdataOneSecond_train, ydataOneSecond_train)
+RandomForestSecond_score = RandomForestSecond.score(XdataOneSecond_test, ydataOneSecond_test)
+RandomForestSecond_score
+
+
+# In[26]:
+
+
+RandomForestSecond = RandomForestClassifier(n_estimators=164, random_state=2022, min_samples_leaf=8, max_depth=19)
+RandomForestSecond = RandomForestSecond.fit(XdataOneSecond_train, ydataOneSecond_train)
+RandomForestSecond_score = RandomForestSecond.score(XdataOneSecond_test, ydataOneSecond_test)
+RandomForestSecond_score
+
+
+# #### XGBoost
+
+# In[27]:
+
+
+from xgboost import XGBClassifier
+
+XGBSecond = XGBClassifier(learning_rate=0.02,
+                          n_estimators=13,
+                          max_depth=8,
+                          min_child_weight=1,
+                          gamma=0.05,
+                          subsample=1,
+                          colsample_btree=1,
+                          scale_pos_weight=1,
+                          random_state=2022,
+                          slient=0)
+XGBSecond.fit(XdataOneSecond_train, ydataOneSecond_train)
+XGBSecond_score = XGBSecond.score(XdataOneSecond_test, ydataOneSecond_test)
+XGBSecond_score
+
+
+# #### KNN
+
+# In[28]:
+
+
+from sklearn.neighbors import KNeighborsClassifier
+
+KNNSecond = KNeighborsClassifier()
+KNNSecond.fit(XdataOneSecond_train, ydataOneSecond_train)
+KNNSecond_score = KNNSecond.score(XdataOneSecond_test, ydataOneSecond_test)
+KNNSecond_score
+
+
+# In[29]:
+
+
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.model_selection import GridSearchCV
+
+KNN_turing_param_grid = [{'weights':['uniform'],
+                          'n_neighbors':[k for k in range(40,50)]},
+                         {'weights':['distance'],
+                          'n_neighbors':[k for k in range(40,50)],
+                          'p':[p for p in range(1,5)]}]
+KNN_turing = KNeighborsClassifier()
+KNN_turing_grid_search = GridSearchCV(KNN_turing,
+                                      param_grid = KNN_turing_param_grid,
+                                      n_jobs = -1,
+                                      verbose = 2)
+KNN_turing_grid_search.fit(XdataOneSecond_train, ydataOneSecond_train)
+
+
+# In[30]:
+
+
+KNN_turing_grid_search.best_score_
+
+
+# In[31]:
+
+
+KNN_turing_grid_search.best_params_
+
+
+# In[32]:
+
+
+KNNSecond_new = KNeighborsClassifier(algorithm='auto', leaf_size=30,
+                                     metric='minkowski',
+                                     n_jobs=-1,
+                                     n_neighbors=43, p=1,
+                                     weights='uniform')
+KNNSecond_new.fit(XdataOneSecond_train, ydataOneSecond_train)
+KNNSecond_new_score = KNNSecond_new.score(XdataOneSecond_test, ydataOneSecond_test)
+KNNSecond_new_score
+
+
+# #### 支持向量机
+
+# In[33]:
+
+
+from sklearn.svm import SVC
+
+SVMSecond = SVC(random_state=2022)
+SVMSecond.fit(XdataOneSecond_train, ydataOneSecond_train)
+SVMSecond_score = SVMSecond.score(XdataOneSecond_test, ydataOneSecond_test)
+SVMSecond_score
+
+
+# #### lightgbm
+
+# In[34]:
+
+
+from lightgbm import LGBMClassifier
+LightgbmSecond = LGBMClassifier(learning_rate = 0.1,
+                                lambda_l1=0.1,
+                                lambda_l2=0.2,
+                                max_depth=3,
+                                objective='multiclass',
+                                num_class=3,
+                                random_state=2022)
+LightgbmSecond.fit(XdataOneSecond_train, ydataOneSecond_train)
+LightgbmSecond_score = LightgbmSecond.score(XdataOneSecond_test, ydataOneSecond_test)
+LightgbmSecond_score
+
+
+# #### 逻辑回归
+
+# In[35]:
+
+
+from sklearn.linear_model import LogisticRegression
+LogisticRegressionSecond = LogisticRegression(multi_class="multinomial", solver="newton-cg", max_iter=2000)
+LogisticRegressionSecond = LogisticRegressionSecond.fit(XdataOneSecond_train, ydataOneSecond_train)
+LogisticRegressionSecond_score = LogisticRegressionSecond.score(XdataOneSecond_test, ydataOneSecond_test)
+LogisticRegressionSecond_score
+
+
+# In[36]:
+
+
+print(f'模型二中RF平均绝对误差：'
+      f'{mean_absolute_error(ydataOneSecond_test, RandomForestSecond.predict(XdataOneSecond_test), sample_weight=None, multioutput="uniform_average")}\n'
+      f'模型二中RF均方误差：'
+      f'{mean_squared_error(ydataOneSecond_test, RandomForestSecond.predict(XdataOneSecond_test), sample_weight=None, multioutput="uniform_average")}')
+print(f'模型二中XGBoost平均绝对误差：'
+      f'{mean_absolute_error(ydataOneSecond_test, XGBSecond.predict(XdataOneSecond_test), sample_weight=None, multioutput="uniform_average")}\n'
+      f'模型二中XGBoost均方误差：'
+      f'{mean_squared_error(ydataOneSecond_test, XGBSecond.predict(XdataOneSecond_test), sample_weight=None, multioutput="uniform_average")}')
+print(f'模型二中KNN平均绝对误差：'
+      f'{mean_absolute_error(ydataOneSecond_test, KNNSecond_new.predict(XdataOneSecond_test), sample_weight=None, multioutput="uniform_average")}\n'
+      f'模型二中KNN均方误差：'
+      f'{mean_squared_error(ydataOneSecond_test, KNNSecond_new.predict(XdataOneSecond_test), sample_weight=None, multioutput="uniform_average")}')
+print(f'模型二中SVM平均绝对误差：'
+      f'{mean_absolute_error(ydataOneSecond_test, SVMSecond.predict(XdataOneSecond_test), sample_weight=None, multioutput="uniform_average")}\n'
+      f'模型二中SVM均方误差：'
+      f'{mean_squared_error(ydataOneSecond_test, SVMSecond.predict(XdataOneSecond_test), sample_weight=None, multioutput="uniform_average")}')
+print(f'模型二中LightGBM平均绝对误差：'
+      f'{mean_absolute_error(ydataOneSecond_test, LightgbmSecond.predict(XdataOneSecond_test), sample_weight=None, multioutput="uniform_average")}\n'
+      f'模型二中LightGBM均方误差：'
+      f'{mean_squared_error(ydataOneSecond_test, LightgbmSecond.predict(XdataOneSecond_test), sample_weight=None, multioutput="uniform_average")}')
+print(f'模型二中LR平均绝对误差：'
+      f'{mean_absolute_error(ydataOneSecond_test, LogisticRegressionSecond.predict(XdataOneSecond_test), sample_weight=None, multioutput="uniform_average")}\n'
+      f'模型二中LR均方误差：'
+      f'{mean_squared_error(ydataOneSecond_test, LogisticRegressionSecond.predict(XdataOneSecond_test), sample_weight=None, multioutput="uniform_average")}')
+
+
+# #### 集成学习
+
+# In[37]:
+
+
+from mlxtend.classifier import StackingCVClassifier
+SecondModel = StackingCVClassifier(classifiers=[RandomForestSecond,XGBSecond,KNNSecond_new,SVMSecond,LogisticRegressionSecond], meta_classifier=LGBMClassifier(random_state=2022), random_state=2022, cv=5)
+SecondModel.fit(XdataOneSecond_train, ydataOneSecond_train)
+SecondModel_score = SecondModel.score(XdataOneSecond_test, ydataOneSecond_test)
+SecondModel_score
+
+
+# In[38]:
+
+
+print(f'模型二平均绝对误差：'
+      f'{mean_absolute_error(ydataOneSecond_test, SecondModel.predict(XdataOneSecond_test), sample_weight=None, multioutput="uniform_average")}\n'
+      f'模型二均方误差：'
+      f'{mean_squared_error(ydataOneSecond_test, SecondModel.predict(XdataOneSecond_test), sample_weight=None, multioutput="uniform_average")}')
+
+
+# ### "语音通话清晰度"学习
+
+# In[39]:
+
+
+XdataOneThird=dataOneNewStandard.loc[:,~dataOneNewStandard.columns.isin(['语音通话整体满意度','网络覆盖与信号强度','语音通话清晰度','语音通话稳定性'])]
+ydataOneThird=dataOneNewStandard['语音通话清晰度']
+XdataOneThird_train, XdataOneThird_test, ydataOneThird_train, ydataOneThird_test = train_test_split(XdataOneThird, ydataOneThird, test_size=0.2, random_state=2022)
+
+
+# #### 决策树、随机森林
+
+# In[40]:
+
+
+DecisionTreeThird = DecisionTreeClassifier(random_state=2022)
+RandomForestThird = RandomForestClassifier(random_state=2022)
+DecisionTreeThird = DecisionTreeThird.fit(XdataOneThird_train, ydataOneThird_train)
+RandomForestThird = RandomForestThird.fit(XdataOneThird_train, ydataOneThird_train)
+RandomForestThird_score = RandomForestThird.score(XdataOneThird_test, ydataOneThird_test)
+RandomForestThird_score
+
+
+# #### XGBoost
+
+# In[41]:
+
+
+from xgboost import XGBClassifier
+
+XGBThird = XGBClassifier(learning_rate=0.02,
+                         n_estimators=14,
+                         max_depth=8,
+                         min_child_weight=1,
+                         gamma=0.05,
+                         subsample=1,
+                         colsample_btree=1,
+                         scale_pos_weight=1,
+                         random_state=2022,
+                         slient=0)
+XGBThird.fit(XdataOneThird_train, ydataOneThird_train)
+XGBThird_score = XGBThird.score(XdataOneThird_test, ydataOneThird_test)
+XGBThird_score
+
+
+# #### KNN
+
+# In[42]:
+
+
+from sklearn.neighbors import KNeighborsClassifier
+
+KNNThird = KNeighborsClassifier()
+KNNThird.fit(XdataOneThird_train, ydataOneThird_train)
+KNNThird_score = KNNThird.score(XdataOneThird_test, ydataOneThird_test)
+KNNThird_score
+
+
+# In[43]:
+
+
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.model_selection import GridSearchCV
+
+KNN_turing_param_grid = [{'weights':['uniform'],
+                          'n_neighbors':[k for k in range(30,40)]},
+                         {'weights':['distance'],
+                          'n_neighbors':[k for k in range(30,40)],
+                          'p':[p for p in range(1,5)]}]
+KNN_turing = KNeighborsClassifier()
+KNN_turing_grid_search = GridSearchCV(KNN_turing,
+                                      param_grid = KNN_turing_param_grid,
+                                      n_jobs = -1,
+                                      verbose = 2)
+KNN_turing_grid_search.fit(XdataOneThird_train, ydataOneThird_train)
+
+
+# In[44]:
+
+
+KNN_turing_grid_search.best_score_
+
+
+# In[45]:
+
+
+KNN_turing_grid_search.best_params_
+
+
+# In[46]:
+
+
+KNNThird_new = KNeighborsClassifier(algorithm='auto', leaf_size=30,
+                                    metric='minkowski',
+                                    n_jobs=-1,
+                                    n_neighbors=39, p=2,
+                                    weights='uniform')
+KNNThird_new.fit(XdataOneThird_train, ydataOneThird_train)
+KNNThird_new_score = KNNThird_new.score(XdataOneThird_test, ydataOneThird_test)
+KNNThird_new_score
+
+
+# #### 支持向量机
+
+# In[47]:
+
+
+from sklearn.svm import SVC
+
+SVMThird = SVC(random_state=2022)
+SVMThird.fit(XdataOneThird_train, ydataOneThird_train)
+SVMThird_score = SVMThird.score(XdataOneThird_test, ydataOneThird_test)
+SVMThird_score
+
+
+# #### lightgbm
+
+# In[48]:
+
+
+from lightgbm import LGBMClassifier
+LightgbmThird = LGBMClassifier(learning_rate = 0.1,
+                                lambda_l1=0.1,
+                                lambda_l2=0.2,
+                                max_depth=9,
+                                objective='multiclass',
+                                num_class=4,
+                                random_state=2022)
+LightgbmThird.fit(XdataOneThird_train, ydataOneThird_train)
+LightgbmThird_score = LightgbmThird.score(XdataOneThird_test, ydataOneThird_test)
+LightgbmThird_score
+
+
+# #### 逻辑回归
+
+# In[49]:
+
+
+from sklearn.linear_model import LogisticRegression
+LogisticRegressionThird = LogisticRegression(multi_class="multinomial", solver="newton-cg", max_iter=2000)
+LogisticRegressionThird = LogisticRegressionThird.fit(XdataOneThird_train, ydataOneThird_train)
+LogisticRegressionThird_score = LogisticRegressionThird.score(XdataOneThird_test, ydataOneThird_test)
+LogisticRegressionThird_score
+
+
+# In[50]:
+
+
+print(f'模型三中RF平均绝对误差：'
+      f'{mean_absolute_error(ydataOneThird_test, RandomForestThird.predict(XdataOneThird_test), sample_weight=None, multioutput="uniform_average")}\n'
+      f'模型三中RF均方误差：'
+      f'{mean_squared_error(ydataOneThird_test, RandomForestThird.predict(XdataOneThird_test), sample_weight=None, multioutput="uniform_average")}')
+print(f'模型三中XGBoost平均绝对误差：'
+      f'{mean_absolute_error(ydataOneThird_test, XGBThird.predict(XdataOneThird_test), sample_weight=None, multioutput="uniform_average")}\n'
+      f'模型三中XGBoost均方误差：'
+      f'{mean_squared_error(ydataOneThird_test, XGBThird.predict(XdataOneThird_test), sample_weight=None, multioutput="uniform_average")}')
+print(f'模型三中KNN平均绝对误差：'
+      f'{mean_absolute_error(ydataOneThird_test, KNNThird_new.predict(XdataOneThird_test), sample_weight=None, multioutput="uniform_average")}\n'
+      f'模型三中KNN均方误差：'
+      f'{mean_squared_error(ydataOneThird_test, KNNThird_new.predict(XdataOneThird_test), sample_weight=None, multioutput="uniform_average")}')
+print(f'模型三中SVM平均绝对误差：'
+      f'{mean_absolute_error(ydataOneThird_test, SVMThird.predict(XdataOneThird_test), sample_weight=None, multioutput="uniform_average")}\n'
+      f'模型三中SVM均方误差：'
+      f'{mean_squared_error(ydataOneThird_test, SVMThird.predict(XdataOneThird_test), sample_weight=None, multioutput="uniform_average")}')
+print(f'模型三中LightGBM平均绝对误差：'
+      f'{mean_absolute_error(ydataOneThird_test, LightgbmThird.predict(XdataOneThird_test), sample_weight=None, multioutput="uniform_average")}\n'
+      f'模型三中LightGBM均方误差：'
+      f'{mean_squared_error(ydataOneThird_test, LightgbmThird.predict(XdataOneThird_test), sample_weight=None, multioutput="uniform_average")}')
+print(f'模型三中LR平均绝对误差：'
+      f'{mean_absolute_error(ydataOneThird_test, LogisticRegressionThird.predict(XdataOneThird_test), sample_weight=None, multioutput="uniform_average")}\n'
+      f'模型三中LR均方误差：'
+      f'{mean_squared_error(ydataOneThird_test, LogisticRegressionThird.predict(XdataOneThird_test), sample_weight=None, multioutput="uniform_average")}')
+
+
+# #### 集成学习
+
+# In[51]:
+
+
+from mlxtend.classifier import StackingCVClassifier
+ThirdModel = StackingCVClassifier(classifiers=[XGBThird,LightgbmThird,KNNThird_new,SVMThird,LogisticRegressionThird], meta_classifier=RandomForestClassifier(random_state=2022), random_state=2022, cv=5)
+ThirdModel.fit(XdataOneThird_train, ydataOneThird_train)
+ThirdModel_score = ThirdModel.score(XdataOneThird_test, ydataOneThird_test)
+ThirdModel_score
+
+
+# In[52]:
+
+
+print(f'模型三平均绝对误差：'
+      f'{mean_absolute_error(ydataOneThird_test, ThirdModel.predict(XdataOneThird_test), sample_weight=None, multioutput="uniform_average")}\n'
+      f'模型三均方误差：'
+      f'{mean_squared_error(ydataOneThird_test, ThirdModel.predict(XdataOneThird_test), sample_weight=None, multioutput="uniform_average")}')
+
+
+# ### "语音通话稳定性"学习
+
+# In[53]:
+
+
+XdataOneFourth=dataOneNewStandard.loc[:,~dataOneNewStandard.columns.isin(['语音通话整体满意度','网络覆盖与信号强度','语音通话清晰度','语音通话稳定性'])]
+ydataOneFourth=dataOneNewStandard['语音通话稳定性']
+XdataOneFourth_train, XdataOneFourth_test, ydataOneFourth_train, ydataOneFourth_test = train_test_split(XdataOneFourth, ydataOneFourth, test_size=0.2, random_state=2022)
+
+
+# #### 决策树、随机森林
+
+# In[54]:
+
+
+DecisionTreeFourth = DecisionTreeClassifier(random_state=2022)
+RandomForestFourth = RandomForestClassifier(random_state=2022)
+DecisionTreeFourth = DecisionTreeFourth.fit(XdataOneFourth_train, ydataOneFourth_train)
+RandomForestFourth = RandomForestFourth.fit(XdataOneFourth_train, ydataOneFourth_train)
+RandomForestFourth_score = RandomForestFourth.score(XdataOneFourth_test, ydataOneFourth_test)
+RandomForestFourth_score
+
+
+# #### XGBoost
+
+# In[55]:
+
+
+from xgboost import XGBClassifier
+
+XGBFourth = XGBClassifier(learning_rate=0.02,
+                          n_estimators=14,
+                          max_depth=6,
+                          min_child_weight=1,
+                          gamma=0.05,
+                          subsample=1,
+                          colsample_btree=1,
+                          scale_pos_weight=1,
+                          random_state=2022,
+                          slient=0)
+XGBFourth.fit(XdataOneFourth_train, ydataOneFourth_train)
+XGBFourth_score = XGBFourth.score(XdataOneFourth_test, ydataOneFourth_test)
+XGBFourth_score
+
+
+# #### KNN
+
+# In[56]:
+
+
+from sklearn.neighbors import KNeighborsClassifier
+
+KNNFourth = KNeighborsClassifier()
+KNNFourth.fit(XdataOneFourth_train, ydataOneFourth_train)
+KNNFourth_score = KNNFourth.score(XdataOneFourth_test, ydataOneFourth_test)
+KNNFourth_score
+
+
+# In[57]:
+
+
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.model_selection import GridSearchCV
+
+KNN_turing_param_grid = [{'weights':['uniform'],
+                          'n_neighbors':[k for k in range(35,45)]},
+                         {'weights':['distance'],
+                          'n_neighbors':[k for k in range(35,45)],
+                          'p':[p for p in range(1,5)]}]
+KNN_turing = KNeighborsClassifier()
+KNN_turing_grid_search = GridSearchCV(KNN_turing,
+                                      param_grid = KNN_turing_param_grid,
+                                      n_jobs = -1,
+                                      verbose = 2)
+KNN_turing_grid_search.fit(XdataOneFourth_train, ydataOneFourth_train)
+
+
+# In[58]:
+
+
+KNN_turing_grid_search.best_score_
+
+
+# In[59]:
+
+
+KNN_turing_grid_search.best_params_
+
+
+# In[60]:
+
+
+KNNFourth_new = KNeighborsClassifier(algorithm='auto', leaf_size=30,
+                                     metric='minkowski',
+                                     n_jobs=-1,
+                                     n_neighbors=41, p=1,
+                                     weights='distance')
+KNNFourth_new.fit(XdataOneFourth_train, ydataOneFourth_train)
+KNNFourth_new_score = KNNFourth_new.score(XdataOneFourth_test, ydataOneFourth_test)
+KNNFourth_new_score
+
+
+# #### 支持向量机
+
+# In[61]:
+
+
+from sklearn.svm import SVC
+
+SVMFourth = SVC(random_state=2022)
+SVMFourth.fit(XdataOneFourth_train, ydataOneFourth_train)
+SVMFourth_score = SVMFourth.score(XdataOneFourth_test, ydataOneFourth_test)
+SVMFourth_score
+
+
+# #### lightgbm
+
+# In[62]:
+
+
+from lightgbm import LGBMClassifier
+LightgbmFourth = LGBMClassifier(learning_rate = 0.1,
+                                lambda_l1=0.1,
+                                lambda_l2=0.2,
+                                max_depth=10,
+                                objective='multiclass',
+                                num_class=4,
+                                random_state=2022)
+LightgbmFourth.fit(XdataOneFourth_train, ydataOneFourth_train)
+LightgbmFourth_score = LightgbmFourth.score(XdataOneFourth_test, ydataOneFourth_test)
+LightgbmFourth_score
+
+
+# #### 逻辑回归
+
+# In[63]:
+
+
+from sklearn.linear_model import LogisticRegression
+LogisticRegressionFourth = LogisticRegression(multi_class="multinomial", solver="newton-cg", max_iter=2000)
+LogisticRegressionFourth = LogisticRegressionFourth.fit(XdataOneFourth_train, ydataOneFourth_train)
+LogisticRegressionFourth_score = LogisticRegressionFourth.score(XdataOneFourth_test, ydataOneFourth_test)
+LogisticRegressionFourth_score
+
+
+# In[64]:
+
+
+print(f'模型四中RF平均绝对误差：'
+      f'{mean_absolute_error(ydataOneFourth_test, RandomForestFourth.predict(XdataOneFourth_test), sample_weight=None, multioutput="uniform_average")}\n'
+      f'模型四中RF均方误差：'
+      f'{mean_squared_error(ydataOneFourth_test, RandomForestFourth.predict(XdataOneFourth_test), sample_weight=None, multioutput="uniform_average")}')
+print(f'模型四中XGBoost平均绝对误差：'
+      f'{mean_absolute_error(ydataOneFourth_test, XGBFourth.predict(XdataOneFourth_test), sample_weight=None, multioutput="uniform_average")}\n'
+      f'模型四中XGBoost均方误差：'
+      f'{mean_squared_error(ydataOneFourth_test, XGBFourth.predict(XdataOneFourth_test), sample_weight=None, multioutput="uniform_average")}')
+print(f'模型四中KNN平均绝对误差：'
+      f'{mean_absolute_error(ydataOneFourth_test, KNNFourth_new.predict(XdataOneFourth_test), sample_weight=None, multioutput="uniform_average")}\n'
+      f'模型四中KNN均方误差：'
+      f'{mean_squared_error(ydataOneFourth_test, KNNFourth_new.predict(XdataOneFourth_test), sample_weight=None, multioutput="uniform_average")}')
+print(f'模型四中SVM平均绝对误差：'
+      f'{mean_absolute_error(ydataOneFourth_test, SVMFourth.predict(XdataOneFourth_test), sample_weight=None, multioutput="uniform_average")}\n'
+      f'模型四中SVM均方误差：'
+      f'{mean_squared_error(ydataOneFourth_test, SVMFourth.predict(XdataOneFourth_test), sample_weight=None, multioutput="uniform_average")}')
+print(f'模型四中LightGBM平均绝对误差：'
+      f'{mean_absolute_error(ydataOneFourth_test, LightgbmFourth.predict(XdataOneFourth_test), sample_weight=None, multioutput="uniform_average")}\n'
+      f'模型四中LightGBM均方误差：'
+      f'{mean_squared_error(ydataOneFourth_test, LightgbmFourth.predict(XdataOneFourth_test), sample_weight=None, multioutput="uniform_average")}')
+print(f'模型四中LR平均绝对误差：'
+      f'{mean_absolute_error(ydataOneFourth_test, LogisticRegressionFourth.predict(XdataOneFourth_test), sample_weight=None, multioutput="uniform_average")}\n'
+      f'模型四中LR均方误差：'
+      f'{mean_squared_error(ydataOneFourth_test, LogisticRegressionFourth.predict(XdataOneFourth_test), sample_weight=None, multioutput="uniform_average")}')
+
+
+# #### 集成学习
+
+# In[65]:
+
+
+from mlxtend.classifier import StackingCVClassifier
+FourthModel = StackingCVClassifier(classifiers=[RandomForestFourth,LightgbmFourth,KNNFourth_new,LogisticRegressionFourth,SVMFourth], meta_classifier=XGBClassifier(random_state=2022), random_state=2022, cv=5)
+FourthModel.fit(XdataOneFourth_train, ydataOneFourth_train)
+FourthModel_score = FourthModel.score(XdataOneFourth_test, ydataOneFourth_test)
+FourthModel_score
+
+
+# In[66]:
+
+
+print(f'模型四平均绝对误差：'
+      f'{mean_absolute_error(ydataOneFourth_test, FourthModel.predict(XdataOneFourth_test), sample_weight=None, multioutput="uniform_average")}\n'
+      f'模型四均方误差：'
+      f'{mean_squared_error(ydataOneFourth_test, FourthModel.predict(XdataOneFourth_test), sample_weight=None, multioutput="uniform_average")}')
+
+
+# ## 预测附件3四项评分
+
+# In[67]:
+
+
+dataThree=pd.read_excel("附件3语音业务用户满意度预测数据.xlsx",sheet_name='语音')
+dataThree
+
+
+# ### 附件格式统一
+
+# In[68]:
+
+
+dataThree.drop(['用户id',
+                '用户描述',
+                '用户描述.1',
+                '性别',
+                '终端品牌类型',
+                '是否不限量套餐到达用户'], axis=1, inplace=True)
+
+
+# In[69]:
+
+
+dataThree
+
+
+# In[70]:
+
+
+dataThree.isnull().sum()
+
+
+# In[71]:
+
+
+dataThree["外省流量占比"] = dataThree["外省流量占比"].astype(str).replace('%','')
+dataThree["外省语音占比"] = dataThree["外省语音占比"].astype(str).replace('%','')
+dataThree
+
+
+# In[72]:
+
+
+dataThree.replace({"是否遇到过网络问题":{2:0},
+                   "居民小区":{-1:0},
+                   "办公室":{-1:0,2:1},
+                   "高校":{-1:0,3:1},
+                   "商业街":{-1:0,4:1},
+                   "地铁":{-1:0,5:1},
+                   "农村":{-1:0,6:1},
+                   "高铁":{-1:0,7:1},
+                   "其他，请注明":{-1:0,98:1},
+                   "手机没有信号":{-1:0},
+                   "有信号无法拨通":{-1:0,2:1},
+                   "通话过程中突然中断":{-1:0,3:1},
+                   "通话中有杂音、听不清、断断续续":{-1:0,4:1},
+                   "串线":{-1:0,5:1},
+                   "通话过程中一方听不见":{-1:0,6:1},
+                   "其他，请注明.1":{-1:0,98:1},
+                   "是否投诉":{'是':1,'否':0},
+                   "是否关怀用户":{'是':1,'否':0},
+                   "是否4G网络客户（本地剔除物联网）":{'是':1,"否":0},
+                   "是否5G网络客户":{'是':1,"否":0},
+                   "客户星级标识":{'未评级':0,'准星':1,'一星':2,'二星':3,'三星':4,'银卡':5,'金卡':6,'白金卡':7,'钻石卡':8},
+                   "终端品牌":{'苹果':22,'华为':11,'小米科技':14,
+                            '步步高':18,'欧珀':17,'三星':4,
+                            'realme':1,'0':0,'万普拉斯':3,
+                            '锤子':24,'万普':8,'中邮通信':21,
+                            '索尼爱立信':6,'亿城':6,'宇龙':6,
+                            '中国移动':7,'中兴':10,'黑鲨':25,
+                            '海信':16,'摩托罗拉':9,'诺基亚':12,
+                            '奇酷':13}
+                   }, inplace=True)
+dataThree
+
+
+# In[73]:
+
+
+dataThree['外省语音占比'] = dataThree['外省语音占比'].astype('float64')
+dataThree['外省流量占比'] = dataThree['外省流量占比'].astype('float64')
+dataThree['是否4G网络客户（本地剔除物联网）'] = dataThree['是否4G网络客户（本地剔除物联网）'].astype('int64')
+dataThree['4\\5G用户'] = dataThree['4\\5G用户'].astype(str)
+dataThree
+
+
+# In[74]:
+
+
+le=sp.LabelEncoder()
+
+FourFiveUser=le.fit_transform(dataThree["4\\5G用户"])
+dataThree["4\\5G用户"]=pd.DataFrame(FourFiveUser)
+dataThree
+
+
+# In[75]:
+
+
+dataThree['是否5G网络客户'] = dataThree['是否5G网络客户'].astype('int64')
+dataThree['客户星级标识'] = dataThree['客户星级标识'].astype('int64')
+dataThree['终端品牌'] = dataThree['终端品牌'].astype('int32')
+dataThree
+
+
+# In[76]:
+
+
+dataThree['场所合计']=dataThree.loc[:,['居民小区','办公室', '高校', '商业街', '地铁', '农村', '高铁', '其他，请注明']].apply(lambda x1:x1.sum(),axis=1)
+dataThree['出现问题合计']=dataThree.loc[:,['手机没有信号','有信号无法拨通','通话过程中突然中断','通话中有杂音、听不清、断断续续','串线','通话过程中一方听不见','其他，请注明.1']].apply(lambda x1:x1.sum(),axis=1)
+dataThree['脱网次数、mos质差次数、未接通掉话次数合计']=dataThree.loc[:,['脱网次数','mos质差次数','未接通掉话次数']].apply(lambda x1:x1.sum(),axis=1)
+dataThree
+
+
+# In[77]:
+
+
+dataThreeStandardTransform = dataThree[['脱网次数','mos质差次数','未接通掉话次数','4\\5G用户', '套外流量（MB）','套外流量费（元）','语音通话-时长（分钟）','省际漫游-时长（分钟）', '终端品牌','当月ARPU','当月MOU', '前3月ARPU','前3月MOU','GPRS总流量（KB）','GPRS-国内漫游-流量（KB）', '客户星级标识','场所合计','出现问题合计','脱网次数、mos质差次数、未接通掉话次数合计']]
+dataThreeStandardTransformScaler = sp.StandardScaler()
+dataThreeStandardTransformScaler = dataThreeStandardTransformScaler.fit(dataThreeStandardTransform)
+dataThreeStandardTransform = dataThreeStandardTransformScaler.transform(dataThreeStandardTransform)
+dataThreeStandardTransform = pd.DataFrame(dataThreeStandardTransform)
+dataThreeStandardTransform.columns = ['脱网次数','mos质差次数','未接通掉话次数','4\\5G用户', '套外流量（MB）','套外流量费（元）','语音通话-时长（分钟）','省际漫游-时长（分钟）', '终端品牌','当月ARPU','当月MOU', '前3月ARPU','前3月MOU','GPRS总流量（KB）','GPRS-国内漫游-流量（KB）', '客户星级标识','场所合计','出现问题合计','脱网次数、mos质差次数、未接通掉话次数合计']
+dataThreeStandardTransform
+
+
+# In[78]:
+
+
+dataThreeLeave=dataThree.loc[:,~dataThree.columns.isin(['脱网次数','mos质差次数','未接通掉话次数','4\\5G用户', '套外流量（MB）','套外流量费（元）','语音通话-时长（分钟）','省际漫游-时长（分钟）', '终端品牌','当月ARPU','当月MOU', '前3月ARPU','前3月MOU','GPRS总流量（KB）','GPRS-国内漫游-流量（KB）', '客户星级标识','场所合计','出现问题合计','脱网次数、mos质差次数、未接通掉话次数合计'])]
+dataThreeNewStandard=pd.concat([dataThreeLeave, dataThreeStandardTransform],axis=1)
+dataThreeNewStandard.columns=['是否遇到过网络问题','居民小区','办公室','高校', '商业街','地铁','农村','高铁', '其他，请注明','手机没有信号','有信号无法拨通','通话过程中突然中断', '通话中有杂音、听不清、断断续续','串线','通话过程中一方听不见','其他，请注明.1', '是否投诉','是否关怀用户','是否4G网络客户（本地剔除物联网）','外省语音占比', '外省流量占比','是否5G网络客户','脱网次数','mos质差次数', '未接通掉话次数','4\\5G用户','套外流量（MB）','套外流量费（元）', '语音通话-时长（分钟）','省际漫游-时长（分钟）','终端品牌', '当月ARPU','当月MOU','前3月ARPU','前3月MOU', 'GPRS总流量（KB）','GPRS-国内漫游-流量（KB）','客户星级标识','场所合计','出现问题合计','脱网次数、mos质差次数、未接通掉话次数合计']
+dataThreeNewStandard
+
+
+# In[79]:
+
+
+dataOneNewStandard
+
+
+# ### 预测语音业务评分
+# 需要注意到在所有预测结果上加上1，由于之前将评分编码为[0,9]，这里需要再映射回[1,10]
+
+# In[80]:
+
+
+Xpre=dataThreeNewStandard
+
+
+# #### 语音通话整体满意度
+
+# In[81]:
+
+
+FirstPre=FirstModel.predict(Xpre)
+FirstPre
+
+
+# #### 网络覆盖与信号强度
+
+# In[82]:
+
+
+SecondPre=SecondModel.predict(Xpre)
+SecondPre
+
+
+# #### 语音通话清晰度
+
+# In[83]:
+
+
+ThirdPre=ThirdModel.predict(Xpre)
+ThirdPre
+
+
+# #### 语音通话稳定性
+
+# In[84]:
+
+
+FourthPre=FourthModel.predict(Xpre)
+FourthPre
+
+
+# ## 模型效果分析
+
+# In[85]:
+
+
+import matplotlib.pyplot as plt
+
+plt.rcParams['font.sans-serif']=['SimHei']
+plt.rcParams['axes.unicode_minus']=False
+
+
+# ### 混淆矩阵热力图
+
+# #### 模型一
+
+# In[86]:
+
+
+from yellowbrick.classifier import ConfusionMatrix
+classes=['1','2','3','4','5','6','7','8','9','10']
+confusion_matrix = ConfusionMatrix(FirstModel, classes=classes, cmap='BuGn')
+confusion_matrix.fit(XdataOneFirst_train, ydataOneFirst_train)
+confusion_matrix.score(XdataOneFirst_test, ydataOneFirst_test)
+plt.xticks(font='Times New Roman')
+plt.yticks(font='Times New Roman')
+confusion_matrix.show(outpath='figuresOne\\[附件1]模型一混淆矩阵热力图.pdf')
+
+
+# #### 模型二
+
+# In[87]:
+
+
+from yellowbrick.classifier import ConfusionMatrix
+classes=['1','2','3','4','5','6','7','8','9','10']
+confusion_matrix = ConfusionMatrix(SecondModel, classes=classes, cmap='BuGn')
+confusion_matrix.fit(XdataOneSecond_train, ydataOneSecond_train)
+confusion_matrix.score(XdataOneSecond_test, ydataOneSecond_test)
+plt.xticks(font='Times New Roman')
+plt.yticks(font='Times New Roman')
+confusion_matrix.show(outpath='figuresOne\\[附件1]模型二混淆矩阵热力图.pdf')
+
+
+# #### 模型三
+
+# In[88]:
+
+
+from yellowbrick.classifier import ConfusionMatrix
+classes=['1','2','3','4','5','6','7','8','9','10']
+confusion_matrix = ConfusionMatrix(ThirdModel, classes=classes, cmap='BuGn')
+confusion_matrix.fit(XdataOneThird_train, ydataOneThird_train)
+confusion_matrix.score(XdataOneThird_test, ydataOneThird_test)
+plt.xticks(font='Times New Roman')
+plt.yticks(font='Times New Roman')
+confusion_matrix.show(outpath='figuresOne\\[附件1]模型三混淆矩阵热力图.pdf')
+
+
+# #### 模型四
+
+# In[89]:
+
+
+from yellowbrick.classifier import ConfusionMatrix
+classes=['1','2','3','4','5','6','7','8','9','10']
+confusion_matrix = ConfusionMatrix(FourthModel, classes=classes, cmap='BuGn')
+confusion_matrix.fit(XdataOneFourth_train, ydataOneFourth_train)
+confusion_matrix.score(XdataOneFourth_test, ydataOneFourth_test)
+plt.xticks(font='Times New Roman')
+plt.yticks(font='Times New Roman')
+confusion_matrix.show(outpath='figuresOne\\[附件1]模型四混淆矩阵热力图.pdf')
+
+
+# ### 分类报告
+
+# #### 模型一
+
+# In[90]:
+
+
+from yellowbrick.classifier import ClassificationReport
+classes=['1','2','3','4','5','6','7','8','9','10']
+visualizer = ClassificationReport(FirstModel, classes=classes, support=True, cmap='Blues')
+visualizer.fit(XdataOneFirst_train, ydataOneFirst_train)
+visualizer.score(XdataOneFirst_test, ydataOneFirst_test)
+plt.xticks(font='Times New Roman')
+plt.yticks(font='Times New Roman')
+visualizer.show(outpath='figuresOne\\[附件1]模型一分类报告.pdf')
+
+
+# #### 模型二
+
+# In[91]:
+
+
+from yellowbrick.classifier import ClassificationReport
+classes=['1','2','3','4','5','6','7','8','9','10']
+visualizer = ClassificationReport(SecondModel, classes=classes, support=True, cmap='Blues')
+visualizer.fit(XdataOneSecond_train, ydataOneSecond_train)
+visualizer.score(XdataOneSecond_test, ydataOneSecond_test)
+plt.xticks(font='Times New Roman')
+plt.yticks(font='Times New Roman')
+visualizer.show(outpath='figuresOne\\[附件1]模型二分类报告.pdf')
+
+
+# #### 模型三
+
+# In[92]:
+
+
+from yellowbrick.classifier import ClassificationReport
+classes=['1','2','3','4','5','6','7','8','9','10']
+visualizer = ClassificationReport(ThirdModel, classes=classes, support=True, cmap='Blues')
+visualizer.fit(XdataOneThird_train, ydataOneThird_train)
+visualizer.score(XdataOneThird_test, ydataOneThird_test)
+plt.xticks(font='Times New Roman')
+plt.yticks(font='Times New Roman')
+visualizer.show(outpath='figuresOne\\[附件1]模型三分类报告.pdf')
+
+
+# #### 模型四
+
+# In[93]:
+
+
+from yellowbrick.classifier import ClassificationReport
+classes=['1','2','3','4','5','6','7','8','9','10']
+visualizer = ClassificationReport(FourthModel, classes=classes, support=True, cmap='Blues')
+visualizer.fit(XdataOneFourth_train, ydataOneFourth_train)
+visualizer.score(XdataOneFourth_test, ydataOneFourth_test)
+plt.xticks(font='Times New Roman')
+plt.yticks(font='Times New Roman')
+visualizer.show(outpath='figuresOne\\[附件1]模型四分类报告.pdf')
+
+
+# ### ROC AUC曲线
+
+# #### 模型一
+
+# In[94]:
+
+
+from yellowbrick.classifier import ROCAUC
+visualizer = ROCAUC(FirstModel)
+visualizer.fit(XdataOneFirst_train, ydataOneFirst_train)
+visualizer.score(XdataOneFirst_test, ydataOneFirst_test)
+plt.xticks(font='Times New Roman')
+plt.yticks(font='Times New Roman')
+visualizer.show(outpath='figuresOne\\[附件1]模型一ROCAUC.pdf')
+
+
+# #### 模型二
+
+# In[95]:
+
+
+from yellowbrick.classifier import ROCAUC
+visualizer = ROCAUC(SecondModel)
+visualizer.fit(XdataOneSecond_train, ydataOneSecond_train)
+visualizer.score(XdataOneSecond_test, ydataOneSecond_test)
+plt.xticks(font='Times New Roman')
+plt.yticks(font='Times New Roman')
+visualizer.show(outpath='figuresOne\\[附件1]模型二ROCAUC.pdf')
+
+
+# #### 模型三
+
+# In[96]:
+
+
+from yellowbrick.classifier import ROCAUC
+visualizer = ROCAUC(ThirdModel)
+visualizer.fit(XdataOneThird_train, ydataOneThird_train)
+visualizer.score(XdataOneThird_test, ydataOneThird_test)
+plt.xticks(font='Times New Roman')
+plt.yticks(font='Times New Roman')
+visualizer.show(outpath='figuresOne\\[附件1]模型三ROCAUC.pdf')
+
+
+# #### 模型四
+
+# In[97]:
+
+
+from yellowbrick.classifier import ROCAUC
+visualizer = ROCAUC(FourthModel)
+visualizer.fit(XdataOneFourth_train, ydataOneFourth_train)
+visualizer.score(XdataOneFourth_test, ydataOneFourth_test)
+plt.xticks(font='Times New Roman')
+plt.yticks(font='Times New Roman')
+visualizer.show(outpath='figuresOne\\[附件1]模型四ROCAUC.pdf')
+
+
+# ### 平均绝对误差，均方误差
+
+# #### 模型一
+
+# In[98]:
+
+
+print(f'模型一平均绝对误差：'
+      f'{mean_absolute_error(ydataOneFirst_test, FirstModel.predict(XdataOneFirst_test), sample_weight=None, multioutput="uniform_average")}\n'
+      f'模型一均方误差：'
+      f'{mean_squared_error(ydataOneFirst_test, FirstModel.predict(XdataOneFirst_test), sample_weight=None, multioutput="uniform_average")}')
+print(f'模型一中RF平均绝对误差：'
+      f'{mean_absolute_error(ydataOneFirst_test, RandomForestFirst.predict(XdataOneFirst_test), sample_weight=None, multioutput="uniform_average")}\n'
+      f'模型一中RF均方误差：'
+      f'{mean_squared_error(ydataOneFirst_test, RandomForestFirst.predict(XdataOneFirst_test), sample_weight=None, multioutput="uniform_average")}')
+print(f'模型一中XGBoost平均绝对误差：'
+      f'{mean_absolute_error(ydataOneFirst_test, XGBFirst.predict(XdataOneFirst_test), sample_weight=None, multioutput="uniform_average")}\n'
+      f'模型一中XGBoost均方误差：'
+      f'{mean_squared_error(ydataOneFirst_test, XGBFirst.predict(XdataOneFirst_test), sample_weight=None, multioutput="uniform_average")}')
+print(f'模型一中KNN平均绝对误差：'
+      f'{mean_absolute_error(ydataOneFirst_test, KNNFirst_new.predict(XdataOneFirst_test), sample_weight=None, multioutput="uniform_average")}\n'
+      f'模型一中KNN均方误差：'
+      f'{mean_squared_error(ydataOneFirst_test, KNNFirst_new.predict(XdataOneFirst_test), sample_weight=None, multioutput="uniform_average")}')
+print(f'模型一中SVM平均绝对误差：'
+      f'{mean_absolute_error(ydataOneFirst_test, SVMFirst.predict(XdataOneFirst_test), sample_weight=None, multioutput="uniform_average")}\n'
+      f'模型一中SVM均方误差：'
+      f'{mean_squared_error(ydataOneFirst_test, SVMFirst.predict(XdataOneFirst_test), sample_weight=None, multioutput="uniform_average")}')
+print(f'模型一中LightGBM平均绝对误差：'
+      f'{mean_absolute_error(ydataOneFirst_test, LightgbmFirst.predict(XdataOneFirst_test), sample_weight=None, multioutput="uniform_average")}\n'
+      f'模型一中LightGBM均方误差：'
+      f'{mean_squared_error(ydataOneFirst_test, LightgbmFirst.predict(XdataOneFirst_test), sample_weight=None, multioutput="uniform_average")}')
+print(f'模型一中LR平均绝对误差：'
+      f'{mean_absolute_error(ydataOneFirst_test, LogisticRegressionFirst.predict(XdataOneFirst_test), sample_weight=None, multioutput="uniform_average")}\n'
+      f'模型一中LR均方误差：'
+      f'{mean_squared_error(ydataOneFirst_test, LogisticRegressionFirst.predict(XdataOneFirst_test), sample_weight=None, multioutput="uniform_average")}')
+
+
+# #### 模型二
+
+# In[99]:
+
+
+print(f'模型二平均绝对误差：'
+      f'{mean_absolute_error(ydataOneSecond_test, SecondModel.predict(XdataOneSecond_test), sample_weight=None, multioutput="uniform_average")}\n'
+      f'模型二均方误差：'
+      f'{mean_squared_error(ydataOneSecond_test, SecondModel.predict(XdataOneSecond_test), sample_weight=None, multioutput="uniform_average")}')
+print(f'模型二中RF平均绝对误差：'
+      f'{mean_absolute_error(ydataOneSecond_test, RandomForestSecond.predict(XdataOneSecond_test), sample_weight=None, multioutput="uniform_average")}\n'
+      f'模型二中RF均方误差：'
+      f'{mean_squared_error(ydataOneSecond_test, RandomForestSecond.predict(XdataOneSecond_test), sample_weight=None, multioutput="uniform_average")}')
+print(f'模型二中XGBoost平均绝对误差：'
+      f'{mean_absolute_error(ydataOneSecond_test, XGBSecond.predict(XdataOneSecond_test), sample_weight=None, multioutput="uniform_average")}\n'
+      f'模型二中XGBoost均方误差：'
+      f'{mean_squared_error(ydataOneSecond_test, XGBSecond.predict(XdataOneSecond_test), sample_weight=None, multioutput="uniform_average")}')
+print(f'模型二中KNN平均绝对误差：'
+      f'{mean_absolute_error(ydataOneSecond_test, KNNSecond_new.predict(XdataOneSecond_test), sample_weight=None, multioutput="uniform_average")}\n'
+      f'模型二中KNN均方误差：'
+      f'{mean_squared_error(ydataOneSecond_test, KNNSecond_new.predict(XdataOneSecond_test), sample_weight=None, multioutput="uniform_average")}')
+print(f'模型二中SVM平均绝对误差：'
+      f'{mean_absolute_error(ydataOneSecond_test, SVMSecond.predict(XdataOneSecond_test), sample_weight=None, multioutput="uniform_average")}\n'
+      f'模型二中SVM均方误差：'
+      f'{mean_squared_error(ydataOneSecond_test, SVMSecond.predict(XdataOneSecond_test), sample_weight=None, multioutput="uniform_average")}')
+print(f'模型二中LightGBM平均绝对误差：'
+      f'{mean_absolute_error(ydataOneSecond_test, LightgbmSecond.predict(XdataOneSecond_test), sample_weight=None, multioutput="uniform_average")}\n'
+      f'模型二中LightGBM均方误差：'
+      f'{mean_squared_error(ydataOneSecond_test, LightgbmSecond.predict(XdataOneSecond_test), sample_weight=None, multioutput="uniform_average")}')
+print(f'模型二中LR平均绝对误差：'
+      f'{mean_absolute_error(ydataOneSecond_test, LogisticRegressionSecond.predict(XdataOneSecond_test), sample_weight=None, multioutput="uniform_average")}\n'
+      f'模型二中LR均方误差：'
+      f'{mean_squared_error(ydataOneSecond_test, LogisticRegressionSecond.predict(XdataOneSecond_test), sample_weight=None, multioutput="uniform_average")}')
+
+
+# #### 模型三
+
+# In[100]:
+
+
+print(f'模型三平均绝对误差：'
+      f'{mean_absolute_error(ydataOneThird_test, ThirdModel.predict(XdataOneThird_test), sample_weight=None, multioutput="uniform_average")}\n'
+      f'模型三均方误差：'
+      f'{mean_squared_error(ydataOneThird_test, ThirdModel.predict(XdataOneThird_test), sample_weight=None, multioutput="uniform_average")}')
+print(f'模型三中RF平均绝对误差：'
+      f'{mean_absolute_error(ydataOneThird_test, RandomForestThird.predict(XdataOneThird_test), sample_weight=None, multioutput="uniform_average")}\n'
+      f'模型三中RF均方误差：'
+      f'{mean_squared_error(ydataOneThird_test, RandomForestThird.predict(XdataOneThird_test), sample_weight=None, multioutput="uniform_average")}')
+print(f'模型三中XGBoost平均绝对误差：'
+      f'{mean_absolute_error(ydataOneThird_test, XGBThird.predict(XdataOneThird_test), sample_weight=None, multioutput="uniform_average")}\n'
+      f'模型三中XGBoost均方误差：'
+      f'{mean_squared_error(ydataOneThird_test, XGBThird.predict(XdataOneThird_test), sample_weight=None, multioutput="uniform_average")}')
+print(f'模型三中KNN平均绝对误差：'
+      f'{mean_absolute_error(ydataOneThird_test, KNNThird_new.predict(XdataOneThird_test), sample_weight=None, multioutput="uniform_average")}\n'
+      f'模型三中KNN均方误差：'
+      f'{mean_squared_error(ydataOneThird_test, KNNThird_new.predict(XdataOneThird_test), sample_weight=None, multioutput="uniform_average")}')
+print(f'模型三中SVM平均绝对误差：'
+      f'{mean_absolute_error(ydataOneThird_test, SVMThird.predict(XdataOneThird_test), sample_weight=None, multioutput="uniform_average")}\n'
+      f'模型三中SVM均方误差：'
+      f'{mean_squared_error(ydataOneThird_test, SVMThird.predict(XdataOneThird_test), sample_weight=None, multioutput="uniform_average")}')
+print(f'模型三中LightGBM平均绝对误差：'
+      f'{mean_absolute_error(ydataOneThird_test, LightgbmThird.predict(XdataOneThird_test), sample_weight=None, multioutput="uniform_average")}\n'
+      f'模型三中LightGBM均方误差：'
+      f'{mean_squared_error(ydataOneThird_test, LightgbmThird.predict(XdataOneThird_test), sample_weight=None, multioutput="uniform_average")}')
+print(f'模型三中LR平均绝对误差：'
+      f'{mean_absolute_error(ydataOneThird_test, LogisticRegressionThird.predict(XdataOneThird_test), sample_weight=None, multioutput="uniform_average")}\n'
+      f'模型三中LR均方误差：'
+      f'{mean_squared_error(ydataOneThird_test, LogisticRegressionThird.predict(XdataOneThird_test), sample_weight=None, multioutput="uniform_average")}')
+
+
+# #### 模型四
+
+# In[101]:
+
+
+print(f'模型四平均绝对误差：'
+      f'{mean_absolute_error(ydataOneFourth_test, FourthModel.predict(XdataOneFourth_test), sample_weight=None, multioutput="uniform_average")}\n'
+      f'模型四均方误差：'
+      f'{mean_squared_error(ydataOneFourth_test, FourthModel.predict(XdataOneFourth_test), sample_weight=None, multioutput="uniform_average")}')
+print(f'模型四中RF平均绝对误差：'
+      f'{mean_absolute_error(ydataOneFourth_test, RandomForestFourth.predict(XdataOneFourth_test), sample_weight=None, multioutput="uniform_average")}\n'
+      f'模型四中RF均方误差：'
+      f'{mean_squared_error(ydataOneFourth_test, RandomForestFourth.predict(XdataOneFourth_test), sample_weight=None, multioutput="uniform_average")}')
+print(f'模型四中XGBoost平均绝对误差：'
+      f'{mean_absolute_error(ydataOneFourth_test, XGBFourth.predict(XdataOneFourth_test), sample_weight=None, multioutput="uniform_average")}\n'
+      f'模型四中XGBoost均方误差：'
+      f'{mean_squared_error(ydataOneFourth_test, XGBFourth.predict(XdataOneFourth_test), sample_weight=None, multioutput="uniform_average")}')
+print(f'模型四中KNN平均绝对误差：'
+      f'{mean_absolute_error(ydataOneFourth_test, KNNFourth_new.predict(XdataOneFourth_test), sample_weight=None, multioutput="uniform_average")}\n'
+      f'模型四中KNN均方误差：'
+      f'{mean_squared_error(ydataOneFourth_test, KNNFourth_new.predict(XdataOneFourth_test), sample_weight=None, multioutput="uniform_average")}')
+print(f'模型四中SVM平均绝对误差：'
+      f'{mean_absolute_error(ydataOneFourth_test, SVMFourth.predict(XdataOneFourth_test), sample_weight=None, multioutput="uniform_average")}\n'
+      f'模型四中SVM均方误差：'
+      f'{mean_squared_error(ydataOneFourth_test, SVMFourth.predict(XdataOneFourth_test), sample_weight=None, multioutput="uniform_average")}')
+print(f'模型四中LightGBM平均绝对误差：'
+      f'{mean_absolute_error(ydataOneFourth_test, LightgbmFourth.predict(XdataOneFourth_test), sample_weight=None, multioutput="uniform_average")}\n'
+      f'模型四中LightGBM均方误差：'
+      f'{mean_squared_error(ydataOneFourth_test, LightgbmFourth.predict(XdataOneFourth_test), sample_weight=None, multioutput="uniform_average")}')
+print(f'模型四中LR平均绝对误差：'
+      f'{mean_absolute_error(ydataOneFourth_test, LogisticRegressionFourth.predict(XdataOneFourth_test), sample_weight=None, multioutput="uniform_average")}\n'
+      f'模型四中LR均方误差：'
+      f'{mean_squared_error(ydataOneFourth_test, LogisticRegressionFourth.predict(XdataOneFourth_test), sample_weight=None, multioutput="uniform_average")}')
+
+
+# ## 高频词汇云图
+
+# In[102]:
+
+
+import jieba
+import wordcloud
+from matplotlib.image import imread
+
+jieba.setLogLevel(jieba.logging.INFO)
+report = open('语音业务词云.txt', 'r', encoding='utf-8').read()
+words = jieba.lcut(report)
+txt = []
+for word in words:
+    if len(word) == 1:
+        continue
+    else:
+        txt.append(word)
+a = ' '.join(txt)
+bg = imread("bg.jpg")
+w = wordcloud.WordCloud(background_color="white", font_path="msyh.ttc", mask=bg)
+w.generate(a)
+w.to_file("figuresOne\\wordcloudF.png")
+
 \end{python}
 \newpage
-% \phantomsection
-% \addcontentsline{toc}{subsubsection}{D.3 原始数据用户评分南丁格尔玫瑰图示}
-\textbf{D.3 原始数据用户评分南丁格尔玫瑰图示}
+\textbf{D.3 上网业务用户分析代码[针对附件2]}
 \begin{python}
+#!/usr/bin/env python
+# coding: utf-8
+
+# # 上网业务 用户行为分析
+
+# ## 导入库
+
+# In[1]:
+
+
+import pandas as pd
+import seaborn as sns
+
+
+# ## 数据预处理
+
+# In[2]:
+
+
+dataTwo=pd.read_excel("附件2上网业务用户满意度数据.xlsx",sheet_name='用后即评满意度分析0620(Q1655704201796)_P')
+dataFour=pd.read_excel("附件4上网业务用户满意度预测数据.xlsx",sheet_name='上网')
+
+
+# In[3]:
+
+
+dataTwo
+
+
+# In[4]:
+
+
+dataFour
+
+
+# In[5]:
+
+
+list(set(list(dataTwo.columns))&set(list(dataFour.columns)))
+
+
+# In[6]:
+
+
+dataTwo=dataTwo[['手机上网整体满意度','网络覆盖与信号强度','手机上网速度',
+				 '手机上网稳定性','居民小区','是否5G网络客户','高校',
+                 '是否不限量套餐到达用户','其他，请注明.5','咪咕视频','阴阳师',
+                 '手机QQ','手机上网速度慢','炉石传说','打游戏延时大',
+                 '火山','显示有信号上不了网','今日头条','办公室',
+                 '上网质差次数','梦幻西游','当月MOU','其他，请注明.2',
+                 '客户星级标识','穿越火线','全部都卡顿','微信',
+                 '全部游戏都卡顿','脱网次数','性别','套外流量费（元）',
+                 '农村','搜狐视频','京东','微信质差次数',
+                 '百度','套外流量（MB）','其他，请注明.1','抖音',
+                 '商业街','拼多多','新浪微博','其他，请注明',
+                 '和平精英','手机支付较慢','看视频卡顿','终端品牌',
+                 '梦幻诛仙','部落冲突','腾讯视频','上网过程中网络时断时续或时快时慢',
+                 '其他，请注明.3','地铁','打开网页或APP图片慢','快手',
+                 '芒果TV','爱奇艺','龙之谷','高铁',
+                 '全部网页或APP都慢','王者荣耀','淘宝','其他，请注明.4',
+                 '下载速度慢','优酷','欢乐斗地主','网络信号差/没有信号']]
+dataTwo
+
+
+# In[7]:
+
+
+dataFour=dataFour[['居民小区','是否5G网络客户','高校',
+                   '是否不限量套餐到达用户','其他，请注明.5','咪咕视频','阴阳师',
+                   '手机QQ','手机上网速度慢','炉石传说','打游戏延时大',
+                   '火山','显示有信号上不了网','今日头条','办公室',
+                   '上网质差次数','梦幻西游','当月MOU','其他，请注明.2',
+                   '客户星级标识','穿越火线','全部都卡顿','微信',
+                   '全部游戏都卡顿','脱网次数','性别','套外流量费（元）',
+                   '农村','搜狐视频','京东','微信质差次数',
+                   '百度','套外流量（MB）','其他，请注明.1','抖音',
+                   '商业街','拼多多','新浪微博','其他，请注明',
+                   '和平精英','手机支付较慢','看视频卡顿','终端品牌',
+                   '梦幻诛仙','部落冲突','腾讯视频','上网过程中网络时断时续或时快时慢',
+                   '其他，请注明.3','地铁','打开网页或APP图片慢','快手',
+                   '芒果TV','爱奇艺','龙之谷','高铁',
+                   '全部网页或APP都慢','王者荣耀','淘宝','其他，请注明.4',
+                   '下载速度慢','优酷','欢乐斗地主','网络信号差/没有信号']]
+dataFour
+
+
+# In[8]:
+
+
+dataTwo=dataTwo.fillna(0)
+dataTwo
+
+
+# In[9]:
+
+
+dataTwo.replace({'居民小区':{-1:0},'是否5G网络客户':{'否':0,'是':1},
+                 '高校':{-1:0,3:1},'是否不限量套餐到达用户':{'否':0,'是':1},
+                 '其他，请注明.5':{-1:0,98:1},'咪咕视频':{-1:0,9:1},
+                 '阴阳师':{-1:0,10:1},
+                 '手机QQ':{-1:0,2:1},
+                 '手机上网速度慢':{-1:0,4:1},
+                 '炉石传说':{-1:0,9:1},
+                 '打游戏延时大':{-1:0,2:1},
+                 '火山':{-1:0,8:1},
+                 '显示有信号上不了网':{-1:0,2:1},
+                 '今日头条':{-1:0,6:1},
+                 '办公室':{-1:0,2:1},
+                 '梦幻西游':{-1:0,4:1},
+                 '其他，请注明.2':{-1:0,98:1},
+                 '客户星级标识':{'未评级':0,'准星':1,'一星':2,'二星':3,'三星':4,'银卡':5,'金卡':6,'白金卡':7,'钻石卡':8},
+                 '穿越火线':{-1:0,3:1},
+                 '全部都卡顿':{-1:0,99:1},
+                 '微信':{-1:0},
+                 '全部游戏都卡顿':{-1:0,99:1},
+                 '性别':{'男':1,'女':-1,'性别不详':0},
+                 '农村':{-1:0,6:1},
+                 '搜狐视频':{-1:0,5:1},
+                 '京东':{-1:0,4:1},
+                 '百度':{-1:0,5:1},
+                 '其他，请注明.1':{-1:0,98:1},
+                 '抖音':{-1:0,6:1},
+                 '商业街':{-1:0,4:1},
+                 '拼多多':{-1:0,8:1},
+                 '新浪微博':{-1:0,7:1},
+                 '其他，请注明':{-1:0,98:1},
+                 '和平精英':{-1:0},
+                 '手机支付较慢':{-1:0,5:1},
+                 '看视频卡顿':{-1:0},
+                 '梦幻诛仙':{-1:0,6:1},
+                 '部落冲突':{-1:0,8:1},
+                 '腾讯视频':{-1:0,3:1},
+                 '上网过程中网络时断时续或时快时慢':{-1:0,3:1},
+                 '其他，请注明.3':{-1:0,98:1},
+                 '地铁':{-1:0,5:1},
+                 '打开网页或APP图片慢':{-1:0,3:1},
+                 '快手':{-1:0,7:1},
+                 '芒果TV':{-1:0,4:1},
+                 '爱奇艺':{-1:0},
+                 '龙之谷':{-1:0,5:1},
+                 '高铁':{-1:0,7:1},
+                 '全部网页或APP都慢':{-1:0,99:1},
+                 '王者荣耀':{-1:0,2:1},
+                 '淘宝':{-1:0,3:1},
+                 '其他，请注明.4':{-1:0,98:1},
+                 '下载速度慢':{-1:0,4:1},
+                 '优酷':{-1:0,2:1},
+                 '欢乐斗地主':{-1:0,7:1},
+                 '网络信号差/没有信号':{-1:0},
+                 '终端品牌':{'0':0,'苹果':1,'华为':2,'小米科技':3,
+                            '步步高':4,'欧珀':5,'realme':6,'三星':7,
+                            '万普拉斯':8,'黑鲨':9,'锤子':10,'摩托罗拉':11,
+                            '中邮通信':12,'万普':13,'诺基亚':14,'联通':15,
+                            '中国移动':16,'中兴':17,'华硕':18,'联想':19,
+                            '魅族':20,'奇酷':21,'TD':22,'北京珠穆朗玛移动通信有限公司':23,
+                            '飞利浦':24,'捷开通讯科技':25,'金立':26,'酷比':27,
+                            '欧博信':28,'索尼爱立信':29,'维图':30,'甄十信息科技（上海）有限公司':31,
+                            '中国电信':32}
+                 }, inplace=True)
+dataTwo
+
+
+# In[10]:
+
+
+import sklearn.preprocessing as sp
+le=sp.LabelEncoder()
+
+OverallSatisfactionMobileInternetAccess=le.fit_transform(dataTwo['手机上网整体满意度'])
+NetworkCoverageSignalStrength=le.fit_transform(dataTwo['网络覆盖与信号强度'])
+MobileInternetAccessSpeed=le.fit_transform(dataTwo['手机上网速度'])
+MobileInternetAccessStability=le.fit_transform(dataTwo['手机上网稳定性'])
+
+dataTwo["手机上网整体满意度"]=pd.DataFrame(OverallSatisfactionMobileInternetAccess)
+dataTwo["网络覆盖与信号强度"]=pd.DataFrame(NetworkCoverageSignalStrength)
+dataTwo["手机上网速度"]=pd.DataFrame(MobileInternetAccessSpeed)
+dataTwo["手机上网稳定性"]=pd.DataFrame(MobileInternetAccessStability)
+
+dataTwo
+
+
+# In[11]:
+
+
+dataTwo['出现问题场所或应用总']=dataTwo.loc[:,~dataTwo.columns.isin(['手机上网整体满意度','网络覆盖与信号强度','手机上网速度','手机上网稳定性', '是否5G网络客户','是否不限量套餐到达用户','手机上网速度慢','打游戏延时大', '显示有信号上不了网','上网质差次数','当月MOU','客户星级标识', '全部都卡顿','全部游戏都卡顿','脱网次数','性别', '套外流量费（元）','微信质差次数','百度','套外流量（MB）', '手机支付较慢','看视频卡顿','终端品牌','上网过程中网络时断时续或时快时慢', '打开网页或APP图片慢','全部网页或APP都慢','下载速度慢','网络信号差/没有信号'])].apply(lambda x1:x1.sum(), axis=1)
+dataTwo['网络卡速度慢延时大上不了网总']=dataTwo.loc[:,['手机上网速度慢','打游戏延时大','显示有信号上不了网','全部都卡顿','全部游戏都卡顿','手机支付较慢','看视频卡顿','上网过程中网络时断时续或时快时慢','打开网页或APP图片慢','全部网页或APP都慢','下载速度慢','网络信号差/没有信号']].apply(lambda x1:x1.sum(), axis=1)
+dataTwo['质差总']=dataTwo.loc[:,['微信质差次数','上网质差次数']].apply(lambda x1:x1.sum(), axis=1)
+dataTwo['地点总']=dataTwo.loc[:,['居民小区','高校','办公室','农村','商业街','地铁','高铁']].apply(lambda x1:x1.sum(),axis=1)
+dataTwo['整体评分']=dataTwo.loc[:,['手机上网整体满意度','网络覆盖与信号强度','手机上网速度','手机上网稳定性']].apply(lambda x1:round(x1.mean()),axis=1)
+dataTwo
+
+
+# ## 用户行为分析
+
+# In[12]:
+
+
+import matplotlib.pyplot as plt
+
+plt.rcParams['font.sans-serif']=['SimHei']
+plt.rcParams['axes.unicode_minus']=False
+
+box_data = dataTwo[['手机上网整体满意度',
+                    '网络覆盖与信号强度',
+                    '手机上网速度',
+                    '手机上网稳定性',]]
+plt.grid(True)
+plt.boxplot(box_data,
+            notch = True,
+            sym = "b+",
+            vert = False,
+            showmeans = True,
+            labels = ['手机上网整体满意度',
+                      '网络覆盖与信号强度',
+                      '手机上网速度',
+                      '手机上网稳定性',])
+plt.yticks(size=14)
+plt.xticks(size=14, font='Times New Roman')
+plt.tight_layout()
+plt.savefig('figuresTwo\\[附件2][手机上网整体满意度、网络覆盖与信号强度、手机上网速度、手机上网稳定性]评分箱线图.pdf')
+
+
+# In[13]:
+
+
+sns.pairplot(dataTwo[['手机上网整体满意度','网络覆盖与信号强度','手机上网速度','手机上网稳定性']],kind='scatter',diag_kind='kde')
+plt.savefig('figuresTwo\\[附件2][手机上网整体满意度、网络覆盖与信号强度、手机上网速度、手机上网稳定性]评分联合分布图.pdf',bbox_inches='tight')
+
+
+# ## 划分高分组和低分组
+
+# In[14]:
+
+
+dataTwoHigh = dataTwo[(dataTwo['手机上网整体满意度']>=7)&(dataTwo['网络覆盖与信号强度']>=7)&(dataTwo['手机上网速度']>=7)&(dataTwo['手机上网稳定性']>=7)]
+dataTwoLow = dataTwo[(dataTwo['手机上网整体满意度']<=4)&(dataTwo['网络覆盖与信号强度']<=4)&(dataTwo['手机上网速度']<=4)&(dataTwo['手机上网稳定性']<=4)]
+
+
+# In[15]:
+
+
+dataTwoHigh.describe()
+
+
+# In[16]:
+
+
+dataTwoLow.describe()
+
+
+# ## 特征分析
+
+# In[17]:
+
+
+sns.pairplot(dataTwoHigh[['整体评分','出现问题场所或应用总','网络卡速度慢延时大上不了网总','质差总','地点总']],kind='scatter',diag_kind='kde')
+plt.savefig('figuresTwo\\[附件2]高分组[出现问题场所或应用总、网络卡速度慢延时大上不了网总、质差总、地点总]评分多变量联合分布图.pdf',bbox_inches='tight')
+
+
+# In[18]:
+
+
+sns.pairplot(dataTwoLow[['整体评分','出现问题场所或应用总','网络卡速度慢延时大上不了网总','质差总','地点总']],kind='scatter',diag_kind='kde')
+plt.savefig('figuresTwo\\[附件2]低分组[出现问题场所或应用总、网络卡速度慢延时大上不了网总、质差总、地点总]评分多变量联合分布图.pdf',bbox_inches='tight')
+
+
+# In[19]:
+
+
+sns.jointplot(x='出现问题场所或应用总', y='整体评分', data=dataTwoHigh, kind='hex')
+plt.savefig('figuresTwo\\[附件2]高分组出现问题场所或应用总分布.pdf',bbox_inches='tight')
+
+
+# In[20]:
+
+
+sns.jointplot(x='出现问题场所或应用总', y='整体评分', data=dataTwoLow, kind='hex',color='r')
+plt.savefig('figuresTwo\\[附件2]低分组出现问题场所或应用总分布.pdf',bbox_inches='tight')
+
+
+# In[21]:
+
+
+sns.jointplot(x='网络卡速度慢延时大上不了网总', y='整体评分', data=dataTwoHigh, kind='hex')
+plt.savefig('figuresTwo\\[附件2]高分组网络卡速度慢延时大上不了网总分布.pdf',bbox_inches='tight')
+
+
+# In[22]:
+
+
+sns.jointplot(x='网络卡速度慢延时大上不了网总', y='整体评分', data=dataTwoLow, kind='hex',color='r')
+plt.savefig('figuresTwo\\[附件2]低分组网络卡速度慢延时大上不了网总分布.pdf',bbox_inches='tight')
+
+
+# In[23]:
+
+
+sns.jointplot(x='质差总', y='整体评分', data=dataTwoHigh, kind='hex')
+plt.savefig('figuresTwo\\[附件2]高分组质差总分布.pdf',bbox_inches='tight')
+
+
+# In[24]:
+
+
+sns.jointplot(x='质差总', y='整体评分', data=dataTwoLow, kind='hex',color='r')
+plt.savefig('figuresTwo\\[附件2]低分组质差总分布.pdf',bbox_inches='tight')
+
+
+# In[25]:
+
+
+sns.jointplot(x='地点总', y='整体评分', data=dataTwoHigh, kind='hex')
+plt.savefig('figuresTwo\\[附件2]高分组地点总分布.pdf',bbox_inches='tight')
+
+
+# In[26]:
+
+
+sns.jointplot(x='地点总', y='整体评分', data=dataTwoLow, kind='hex',color='r')
+plt.savefig('figuresTwo\\[附件2]低分组地点总分布.pdf',bbox_inches='tight')
+
+
+# In[27]:
+
+
+dataTwoHigh['终端品牌'].mode()
+
+
+# In[28]:
+
+
+dataTwoLow['终端品牌'].mode()
+
+
+# ## 异常用户评分数据剔除
+
+# In[29]:
+
+
+dataTwoSample=dataTwo[((dataTwo['其他，请注明']==1)|(dataTwo['其他，请注明.1']==1)|(dataTwo['其他，请注明.2']==1)|(dataTwo['其他，请注明.3']==1)|(dataTwo['其他，请注明.4']==1)|(dataTwo['其他，请注明.5']==1))|((abs(dataTwo['手机上网整体满意度']-dataTwo['网络覆盖与信号强度'])<=5)&(abs(dataTwo['手机上网整体满意度']-dataTwo['手机上网速度'])<=4)&(abs(dataTwo['手机上网整体满意度']-dataTwo['手机上网稳定性'])<=4)&(dataTwo['网络覆盖与信号强度']-dataTwo['手机上网速度']<=4)&(dataTwo['网络覆盖与信号强度']-dataTwo['手机上网稳定性']<=4)&(dataTwo['手机上网速度']-dataTwo['手机上网稳定性']<=3))]
+dataTwoSample
+
+
+# In[30]:
+
+
+dataTwo
+
+
+# In[31]:
+
+
+sns.heatmap(dataTwo[['手机上网整体满意度','网络覆盖与信号强度','手机上网速度','手机上网稳定性']].corr(method='pearson'),linewidths=0.1,vmax=1.0, square=True,linecolor='white', annot=True)
+plt.title('上网业务评分皮尔逊相关系数热力图')
+plt.savefig('figuresTwo\\[附件2]上网业务评分皮尔逊相关系数热力图.pdf',bbox_inches='tight')
+
 \end{python}
 \newpage
-% \phantomsection
-% \addcontentsline{toc}{subsubsection}{D.4 预测数据用户评分南丁格尔玫瑰图示}
-\textbf{D.4 预测数据用户评分南丁格尔玫瑰图示}
+\textbf{D.4 上网业务数据分析代码[针对附件2与附件4]}
 \begin{python}
+#!/usr/bin/env python
+# coding: utf-8
+
+# # 2022 MathorCup 大数据 IssueB 复赛
+
+# # 上网业务数据分析
+
+# ## 导入第三方库
+
+# In[1]:
+
+
+import pandas as pd
+import numpy as np
+import sklearn.preprocessing as sp
+import warnings
+warnings.filterwarnings("ignore")
+
+
+# ## 读取经过剔除数据的附件2与附件4
+
+# In[2]:
+
+
+dataTwo=pd.read_csv("上网业务Sample.csv",encoding='gbk')
+dataFour=pd.read_excel("附件4上网业务用户满意度预测数据.xlsx",sheet_name='上网')
+
+
+# In[3]:
+
+
+dataTwo
+
+
+# In[4]:
+
+
+dataFour
+
+
+# ## 数据预处理
+
+# ### 筛选出有效维度指标
+
+# In[5]:
+
+
+dataFour=dataFour[['居民小区','是否5G网络客户','高校',
+                   '是否不限量套餐到达用户','其他，请注明.5','咪咕视频','阴阳师',
+                   '手机QQ','手机上网速度慢','炉石传说','打游戏延时大',
+                   '火山','显示有信号上不了网','今日头条','办公室',
+                   '上网质差次数','梦幻西游','当月MOU','其他，请注明.2',
+                   '客户星级标识','穿越火线','全部都卡顿','微信',
+                   '全部游戏都卡顿','脱网次数','性别','套外流量费（元）',
+                   '农村','搜狐视频','京东','微信质差次数',
+                   '百度','套外流量（MB）','其他，请注明.1','抖音',
+                   '商业街','拼多多','新浪微博','其他，请注明',
+                   '和平精英','手机支付较慢','看视频卡顿','终端品牌',
+                   '梦幻诛仙','部落冲突','腾讯视频','上网过程中网络时断时续或时快时慢',
+                   '其他，请注明.3','地铁','打开网页或APP图片慢','快手',
+                   '芒果TV','爱奇艺','龙之谷','高铁',
+                   '全部网页或APP都慢','王者荣耀','淘宝','其他，请注明.4',
+                   '下载速度慢','优酷','欢乐斗地主','网络信号差/没有信号']]
+dataFour
+
+
+# In[6]:
+
+
+dataFour.isnull().sum()
+
+
+# ### 标签编码，四项评分视为分类问题
+
+# In[7]:
+
+
+le=sp.LabelEncoder()
+
+OverallSatisfactionMobileInternetAccess=le.fit_transform(dataTwo['手机上网整体满意度'])
+NetworkCoverageSignalStrength=le.fit_transform(dataTwo['网络覆盖与信号强度'])
+MobileInternetAccessSpeed=le.fit_transform(dataTwo['手机上网速度'])
+MobileInternetAccessStability=le.fit_transform(dataTwo['手机上网稳定性'])
+
+dataTwo["手机上网整体满意度"]=pd.DataFrame(OverallSatisfactionMobileInternetAccess)
+dataTwo["网络覆盖与信号强度"]=pd.DataFrame(NetworkCoverageSignalStrength)
+dataTwo["手机上网速度"]=pd.DataFrame(MobileInternetAccessSpeed)
+dataTwo["手机上网稳定性"]=pd.DataFrame(MobileInternetAccessStability)
+
+dataTwo
+
+
+# ### 数据标准化
+
+# In[8]:
+
+
+StandardTransform = dataTwo[['上网质差次数','当月MOU','客户星级标识','脱网次数','性别','套外流量费（元）','微信质差次数','套外流量（MB）','终端品牌','出现问题场所或应用总','网络卡速度慢延时大上不了网总','质差总','地点总']]
+StandardTransformScaler = sp.StandardScaler()
+StandardTransformScaler = StandardTransformScaler.fit(StandardTransform)
+StandardTransform = StandardTransformScaler.transform(StandardTransform)
+StandardTransform = pd.DataFrame(StandardTransform)
+StandardTransform.columns = ['上网质差次数','当月MOU','客户星级标识','脱网次数','性别','套外流量费（元）','微信质差次数','套外流量（MB）','终端品牌','出现问题场所或应用总','网络卡速度慢延时大上不了网总','质差总','地点总']
+StandardTransform
+
+
+# In[9]:
+
+
+dataTwoLeave=dataTwo.loc[:,~dataTwo.columns.isin(['上网质差次数','当月MOU','客户星级标识','脱网次数','性别','套外流量费（元）','微信质差次数','套外流量（MB）','终端品牌','出现问题场所或应用总','网络卡速度慢延时大上不了网总','质差总','地点总'])]
+
+
+# In[10]:
+
+
+dataTwoNewStandard=pd.concat([dataTwoLeave, StandardTransform], axis=1)
+dataTwoNewStandard
+
+
+# ## 机器学习
+
+# In[11]:
+
+
+from sklearn.model_selection import train_test_split
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import mean_absolute_error
+from sklearn.metrics import mean_squared_error
+
+
+# ### "手机上网整体满意度"学习
+
+# In[12]:
+
+
+XdataTwoFirst=dataTwoNewStandard.loc[:,~dataTwoNewStandard.columns.isin(['手机上网整体满意度','网络覆盖与信号强度','手机上网速度','手机上网稳定性'])]
+ydataTwoFirst=dataTwoNewStandard['手机上网整体满意度']
+XdataTwoFirst_train, XdataTwoFirst_test, ydataTwoFirst_train, ydataTwoFirst_test = train_test_split(XdataTwoFirst, ydataTwoFirst, test_size=0.1, random_state=2022)
+
+
+# #### 决策树、随机森林
+
+# In[13]:
+
+
+DecisionTreeFirst = DecisionTreeClassifier(random_state=2022, min_samples_leaf=16)
+RandomForestFirst = RandomForestClassifier(random_state=2022, n_estimators=166, min_samples_leaf=16)
+DecisionTreeFirst = DecisionTreeFirst.fit(XdataTwoFirst_train, ydataTwoFirst_train)
+RandomForestFirst = RandomForestFirst.fit(XdataTwoFirst_train, ydataTwoFirst_train)
+RandomForestFirst_score = RandomForestFirst.score(XdataTwoFirst_test, ydataTwoFirst_test)
+RandomForestFirst_score
+
+
+# #### XGBoost
+
+# In[14]:
+
+
+from xgboost import XGBClassifier
+
+XGBFirst = XGBClassifier(learning_rate=0.01,
+                         n_estimators=17,
+                         max_depth=3,
+                         min_child_weight=1,
+                         gamma=0.,
+                         subsample=1,
+                         colsample_btree=1,
+                         scale_pos_weight=1,
+                         random_state=2022,
+                         slient=0)
+XGBFirst.fit(XdataTwoFirst_train, ydataTwoFirst_train)
+XGBFirst_score = XGBFirst.score(XdataTwoFirst_test, ydataTwoFirst_test)
+XGBFirst_score
+
+
+# #### KNN
+
+# In[15]:
+
+
+from sklearn.neighbors import KNeighborsClassifier
+
+KNNFirst = KNeighborsClassifier(n_neighbors=36, p=1, weights='distance')
+KNNFirst.fit(XdataTwoFirst_train, ydataTwoFirst_train)
+KNNFirst_score = KNNFirst.score(XdataTwoFirst_test, ydataTwoFirst_test)
+KNNFirst_score
+
+
+# #### 支持向量机
+
+# In[16]:
+
+
+from sklearn.svm import SVC
+
+SVMFirst = SVC(random_state=2022)
+SVMFirst.fit(XdataTwoFirst_train, ydataTwoFirst_train)
+SVMFirst_score = SVMFirst.score(XdataTwoFirst_test, ydataTwoFirst_test)
+SVMFirst_score
+
+
+# #### lightgbm
+
+# In[17]:
+
+
+from lightgbm import LGBMClassifier
+LightgbmFirst = LGBMClassifier(learning_rate = 0.1,
+                               lambda_l1=0.1,
+                               lambda_l2=0.2,
+                               max_depth=1,
+                               objective='multiclass',
+                               num_class=3,
+                               random_state=2022)
+LightgbmFirst.fit(XdataTwoFirst_train, ydataTwoFirst_train)
+LightgbmFirst_score = LightgbmFirst.score(XdataTwoFirst_test, ydataTwoFirst_test)
+LightgbmFirst_score
+
+
+# #### 逻辑回归
+
+# In[18]:
+
+
+from sklearn.linear_model import LogisticRegression
+LogisticRegressionFirst = LogisticRegression(multi_class="multinomial", solver="newton-cg", max_iter=2000)
+LogisticRegressionFirst = LogisticRegressionFirst.fit(XdataTwoFirst_train, ydataTwoFirst_train)
+LogisticRegressionFirst_score = LogisticRegressionFirst.score(XdataTwoFirst_test, ydataTwoFirst_test)
+LogisticRegressionFirst_score
+
+
+# In[19]:
+
+
+print(f'模型一中RF平均绝对误差：'
+      f'{mean_absolute_error(ydataTwoFirst_test, RandomForestFirst.predict(XdataTwoFirst_test), sample_weight=None, multioutput="uniform_average")}\n'
+      f'模型一中RF均方误差：'
+      f'{mean_squared_error(ydataTwoFirst_test, RandomForestFirst.predict(XdataTwoFirst_test), sample_weight=None, multioutput="uniform_average")}')
+print(f'模型一中XGBoost平均绝对误差：'
+      f'{mean_absolute_error(ydataTwoFirst_test, XGBFirst.predict(XdataTwoFirst_test), sample_weight=None, multioutput="uniform_average")}\n'
+      f'模型一中XGBoost均方误差：'
+      f'{mean_squared_error(ydataTwoFirst_test, XGBFirst.predict(XdataTwoFirst_test), sample_weight=None, multioutput="uniform_average")}')
+print(f'模型一中KNN平均绝对误差：'
+      f'{mean_absolute_error(ydataTwoFirst_test, KNNFirst.predict(XdataTwoFirst_test), sample_weight=None, multioutput="uniform_average")}\n'
+      f'模型一中KNN均方误差：'
+      f'{mean_squared_error(ydataTwoFirst_test, KNNFirst.predict(XdataTwoFirst_test), sample_weight=None, multioutput="uniform_average")}')
+print(f'模型一中SVM平均绝对误差：'
+      f'{mean_absolute_error(ydataTwoFirst_test, SVMFirst.predict(XdataTwoFirst_test), sample_weight=None, multioutput="uniform_average")}\n'
+      f'模型一中SVM均方误差：'
+      f'{mean_squared_error(ydataTwoFirst_test, SVMFirst.predict(XdataTwoFirst_test), sample_weight=None, multioutput="uniform_average")}')
+print(f'模型一中LightGBM平均绝对误差：'
+      f'{mean_absolute_error(ydataTwoFirst_test, LightgbmFirst.predict(XdataTwoFirst_test), sample_weight=None, multioutput="uniform_average")}\n'
+      f'模型一中LightGBM均方误差：'
+      f'{mean_squared_error(ydataTwoFirst_test, LightgbmFirst.predict(XdataTwoFirst_test), sample_weight=None, multioutput="uniform_average")}')
+print(f'模型一中LR平均绝对误差：'
+      f'{mean_absolute_error(ydataTwoFirst_test, LogisticRegressionFirst.predict(XdataTwoFirst_test), sample_weight=None, multioutput="uniform_average")}\n'
+      f'模型一中LR均方误差：'
+      f'{mean_squared_error(ydataTwoFirst_test, LogisticRegressionFirst.predict(XdataTwoFirst_test), sample_weight=None, multioutput="uniform_average")}')
+
+
+# #### 集成学习
+
+# In[20]:
+
+
+from mlxtend.classifier import StackingCVClassifier
+FirstModel = StackingCVClassifier(classifiers=[LogisticRegressionFirst,XGBFirst,KNNFirst,RandomForestFirst,LightgbmFirst], meta_classifier=SVC(random_state=2022), random_state=2022, cv=5)
+FirstModel.fit(XdataTwoFirst_train, ydataTwoFirst_train)
+FirstModel_score = FirstModel.score(XdataTwoFirst_test, ydataTwoFirst_test)
+FirstModel_score
+
+
+# In[21]:
+
+
+print(f'模型一平均绝对误差：'
+      f'{mean_absolute_error(ydataTwoFirst_test, FirstModel.predict(XdataTwoFirst_test), sample_weight=None, multioutput="uniform_average")}\n'
+      f'模型一均方误差：'
+      f'{mean_squared_error(ydataTwoFirst_test, FirstModel.predict(XdataTwoFirst_test), sample_weight=None, multioutput="uniform_average")}')
+
+
+# ### "网络覆盖与信号强度"学习
+
+# In[22]:
+
+
+XdataTwoSecond=dataTwoNewStandard.loc[:,~dataTwoNewStandard.columns.isin(['手机上网整体满意度','网络覆盖与信号强度','手机上网速度','手机上网稳定性'])]
+ydataTwoSecond=dataTwoNewStandard['网络覆盖与信号强度']
+XdataTwoSecond_train, XdataTwoSecond_test, ydataTwoSecond_train, ydataTwoSecond_test = train_test_split(XdataTwoSecond, ydataTwoSecond, test_size=0.1, random_state=2022)
+
+
+# #### 决策树、随机森林
+
+# In[23]:
+
+
+DecisionTreeSecond = DecisionTreeClassifier(random_state=2022)
+RandomForestSecond = RandomForestClassifier(random_state=2022, n_estimators=159, min_samples_leaf=20)
+DecisionTreeSecond = DecisionTreeSecond.fit(XdataTwoSecond_train, ydataTwoSecond_train)
+RandomForestSecond = RandomForestSecond.fit(XdataTwoSecond_train, ydataTwoSecond_train)
+RandomForestSecond_score = RandomForestSecond.score(XdataTwoSecond_test, ydataTwoSecond_test)
+RandomForestSecond_score
+
+
+# #### XGBoost
+
+# In[24]:
+
+
+from xgboost import XGBClassifier
+
+XGBSecond = XGBClassifier(learning_rate=0.02,
+                          n_estimators=17,
+                          max_depth=6,
+                          min_child_weight=1,
+                          gamma=0.05,
+                          subsample=1,
+                          colsample_btree=1,
+                          scale_pos_weight=1,
+                          random_state=2022,
+                          slient=0)
+XGBSecond.fit(XdataTwoSecond_train, ydataTwoSecond_train)
+XGBSecond_score = XGBSecond.score(XdataTwoSecond_test, ydataTwoSecond_test)
+XGBSecond_score
+
+
+# #### KNN
+
+# In[25]:
+
+
+from sklearn.neighbors import KNeighborsClassifier
+
+KNNSecond = KNeighborsClassifier(algorithm='auto', leaf_size=42,
+                                 metric='minkowski',
+                                 n_jobs=-1,
+                                 n_neighbors=46, p=1,
+                                 weights='distance')
+KNNSecond.fit(XdataTwoSecond_train, ydataTwoSecond_train)
+KNNSecond_score = KNNSecond.score(XdataTwoSecond_test, ydataTwoSecond_test)
+KNNSecond_score
+
+
+# #### 支持向量机
+
+# In[26]:
+
+
+from sklearn.svm import SVC
+
+SVMSecond = SVC(random_state=2022)
+SVMSecond.fit(XdataTwoSecond_train, ydataTwoSecond_train)
+SVMSecond_score = SVMSecond.score(XdataTwoSecond_test, ydataTwoSecond_test)
+SVMSecond_score
+
+
+# #### lightgbm
+
+# In[27]:
+
+
+from lightgbm import LGBMClassifier
+LightgbmSecond = LGBMClassifier(learning_rate=0.1,
+                                lambda_l1=0.1,
+                                lambda_l2=0.2,
+                                max_depth=5,
+                                objective='multiclass',
+                                num_class=3,
+                                random_state=2022)
+LightgbmSecond.fit(XdataTwoSecond_train, ydataTwoSecond_train)
+LightgbmSecond_score = LightgbmSecond.score(XdataTwoSecond_test, ydataTwoSecond_test)
+LightgbmSecond_score
+
+
+# #### 逻辑回归
+
+# In[28]:
+
+
+from sklearn.linear_model import LogisticRegression
+LogisticRegressionSecond = LogisticRegression(multi_class="multinomial", solver="newton-cg", max_iter=3000)
+LogisticRegressionSecond = LogisticRegressionSecond.fit(XdataTwoSecond_train, ydataTwoSecond_train)
+LogisticRegressionSecond_score = LogisticRegressionSecond.score(XdataTwoSecond_test, ydataTwoSecond_test)
+LogisticRegressionSecond_score
+
+
+# In[29]:
+
+
+print(f'模型二中RF平均绝对误差：'
+      f'{mean_absolute_error(ydataTwoSecond_test, RandomForestSecond.predict(XdataTwoSecond_test), sample_weight=None, multioutput="uniform_average")}\n'
+      f'模型二中RF均方误差：'
+      f'{mean_squared_error(ydataTwoSecond_test, RandomForestSecond.predict(XdataTwoSecond_test), sample_weight=None, multioutput="uniform_average")}')
+print(f'模型二中XGBoost平均绝对误差：'
+      f'{mean_absolute_error(ydataTwoSecond_test, XGBSecond.predict(XdataTwoSecond_test), sample_weight=None, multioutput="uniform_average")}\n'
+      f'模型二中XGBoost均方误差：'
+      f'{mean_squared_error(ydataTwoSecond_test, XGBSecond.predict(XdataTwoSecond_test), sample_weight=None, multioutput="uniform_average")}')
+print(f'模型二中KNN平均绝对误差：'
+      f'{mean_absolute_error(ydataTwoSecond_test, KNNSecond.predict(XdataTwoSecond_test), sample_weight=None, multioutput="uniform_average")}\n'
+      f'模型二中KNN均方误差：'
+      f'{mean_squared_error(ydataTwoSecond_test, KNNSecond.predict(XdataTwoSecond_test), sample_weight=None, multioutput="uniform_average")}')
+print(f'模型二中SVM平均绝对误差：'
+      f'{mean_absolute_error(ydataTwoSecond_test, SVMSecond.predict(XdataTwoSecond_test), sample_weight=None, multioutput="uniform_average")}\n'
+      f'模型二中SVM均方误差：'
+      f'{mean_squared_error(ydataTwoSecond_test, SVMSecond.predict(XdataTwoSecond_test), sample_weight=None, multioutput="uniform_average")}')
+print(f'模型二中LightGBM平均绝对误差：'
+      f'{mean_absolute_error(ydataTwoSecond_test, LightgbmSecond.predict(XdataTwoSecond_test), sample_weight=None, multioutput="uniform_average")}\n'
+      f'模型二中LightGBM均方误差：'
+      f'{mean_squared_error(ydataTwoSecond_test, LightgbmSecond.predict(XdataTwoSecond_test), sample_weight=None, multioutput="uniform_average")}')
+print(f'模型二中LR平均绝对误差：'
+      f'{mean_absolute_error(ydataTwoSecond_test, LogisticRegressionSecond.predict(XdataTwoSecond_test), sample_weight=None, multioutput="uniform_average")}\n'
+      f'模型二中LR均方误差：'
+      f'{mean_squared_error(ydataTwoSecond_test, LogisticRegressionSecond.predict(XdataTwoSecond_test), sample_weight=None, multioutput="uniform_average")}')
+
+
+# #### 集成学习
+
+# In[30]:
+
+
+from mlxtend.classifier import StackingCVClassifier
+SecondModel = StackingCVClassifier(classifiers=[RandomForestSecond,XGBSecond,KNNSecond,LogisticRegressionSecond,LightgbmSecond], meta_classifier=SVC(random_state=2022), random_state=2022, cv=5)
+SecondModel.fit(XdataTwoSecond_train, ydataTwoSecond_train)
+SecondModel_score = SecondModel.score(XdataTwoSecond_test, ydataTwoSecond_test)
+SecondModel_score
+
+
+# In[31]:
+
+
+print(f'模型二平均绝对误差：'
+      f'{mean_absolute_error(ydataTwoSecond_test, SecondModel.predict(XdataTwoSecond_test), sample_weight=None, multioutput="uniform_average")}\n'
+      f'模型二均方误差：'
+      f'{mean_squared_error(ydataTwoSecond_test, SecondModel.predict(XdataTwoSecond_test), sample_weight=None, multioutput="uniform_average")}')
+
+
+# ### "手机上网速度"学习
+
+# In[32]:
+
+
+XdataTwoThird=dataTwoNewStandard.loc[:,~dataTwoNewStandard.columns.isin(['手机上网整体满意度','网络覆盖与信号强度','手机上网速度','手机上网稳定性'])]
+ydataTwoThird=dataTwoNewStandard['手机上网速度']
+XdataTwoThird_train, XdataTwoThird_test, ydataTwoThird_train, ydataTwoThird_test = train_test_split(XdataTwoThird, ydataTwoThird, test_size=0.1, random_state=2022)
+
+
+# #### 决策树、随机森林
+
+# In[33]:
+
+
+DecisionTreeThird = DecisionTreeClassifier(random_state=2022)
+RandomForestThird = RandomForestClassifier(random_state=2022, n_estimators=162, min_samples_leaf=20)
+DecisionTreeThird = DecisionTreeThird.fit(XdataTwoThird_train, ydataTwoThird_train)
+RandomForestThird = RandomForestThird.fit(XdataTwoThird_train, ydataTwoThird_train)
+RandomForestThird_score = RandomForestThird.score(XdataTwoThird_test, ydataTwoThird_test)
+RandomForestThird_score
+
+
+# #### XGBoost
+
+# In[34]:
+
+
+from xgboost import XGBClassifier
+
+XGBThird = XGBClassifier(learning_rate=0.02,
+                         n_estimators=16,
+                         max_depth=8,
+                         min_child_weight=1,
+                         gamma=0.05,
+                         subsample=1,
+                         colsample_btree=1,
+                         scale_pos_weight=1,
+                         random_state=2022,
+                         slient=0)
+XGBThird.fit(XdataTwoThird_train, ydataTwoThird_train)
+XGBThird_score = XGBThird.score(XdataTwoThird_test, ydataTwoThird_test)
+XGBThird_score
+
+
+# #### KNN
+
+# In[35]:
+
+
+from sklearn.neighbors import KNeighborsClassifier
+
+KNNThird = KNeighborsClassifier(n_neighbors=35, p=1)
+KNNThird.fit(XdataTwoThird_train, ydataTwoThird_train)
+KNNThird_score = KNNThird.score(XdataTwoThird_test, ydataTwoThird_test)
+KNNThird_score
+
+
+# #### 支持向量机
+
+# In[36]:
+
+
+from sklearn.svm import SVC
+
+SVMThird = SVC(random_state=2022)
+SVMThird.fit(XdataTwoThird_train, ydataTwoThird_train)
+SVMThird_score = SVMThird.score(XdataTwoThird_test, ydataTwoThird_test)
+SVMThird_score
+
+
+# #### lightgbm
+
+# In[37]:
+
+
+LightgbmThird = LGBMClassifier(learning_rate = 0.1,
+                               lambda_l1=0.1,
+                               lambda_l2=0.2,
+                               max_depth=16,
+                               objective='multiclass',
+                               num_class=4,
+                               random_state=2022)
+LightgbmThird.fit(XdataTwoThird_train, ydataTwoThird_train)
+LightgbmThird_score = LightgbmThird.score(XdataTwoThird_test, ydataTwoThird_test)
+LightgbmThird_score
+
+
+# #### 逻辑回归
+
+# In[38]:
+
+
+from sklearn.linear_model import LogisticRegression
+LogisticRegressionThird = LogisticRegression(multi_class="multinomial", solver="newton-cg", max_iter=2000)
+LogisticRegressionThird = LogisticRegressionThird.fit(XdataTwoThird_train, ydataTwoThird_train)
+LogisticRegressionThird_score = LogisticRegressionThird.score(XdataTwoThird_test, ydataTwoThird_test)
+LogisticRegressionThird_score
+
+
+# In[39]:
+
+
+print(f'模型三中RF平均绝对误差：'
+      f'{mean_absolute_error(ydataTwoThird_test, RandomForestThird.predict(XdataTwoThird_test), sample_weight=None, multioutput="uniform_average")}\n'
+      f'模型三中RF均方误差：'
+      f'{mean_squared_error(ydataTwoThird_test, RandomForestThird.predict(XdataTwoThird_test), sample_weight=None, multioutput="uniform_average")}')
+print(f'模型三中XGBoost平均绝对误差：'
+      f'{mean_absolute_error(ydataTwoThird_test, XGBThird.predict(XdataTwoThird_test), sample_weight=None, multioutput="uniform_average")}\n'
+      f'模型三中XGBoost均方误差：'
+      f'{mean_squared_error(ydataTwoThird_test, XGBThird.predict(XdataTwoThird_test), sample_weight=None, multioutput="uniform_average")}')
+print(f'模型三中KNN平均绝对误差：'
+      f'{mean_absolute_error(ydataTwoThird_test, KNNThird.predict(XdataTwoThird_test), sample_weight=None, multioutput="uniform_average")}\n'
+      f'模型三中KNN均方误差：'
+      f'{mean_squared_error(ydataTwoThird_test, KNNThird.predict(XdataTwoThird_test), sample_weight=None, multioutput="uniform_average")}')
+print(f'模型三中SVM平均绝对误差：'
+      f'{mean_absolute_error(ydataTwoThird_test, SVMThird.predict(XdataTwoThird_test), sample_weight=None, multioutput="uniform_average")}\n'
+      f'模型三中SVM均方误差：'
+      f'{mean_squared_error(ydataTwoThird_test, SVMThird.predict(XdataTwoThird_test), sample_weight=None, multioutput="uniform_average")}')
+print(f'模型三中LightGBM平均绝对误差：'
+      f'{mean_absolute_error(ydataTwoThird_test, LightgbmThird.predict(XdataTwoThird_test), sample_weight=None, multioutput="uniform_average")}\n'
+      f'模型三中LightGBM均方误差：'
+      f'{mean_squared_error(ydataTwoThird_test, LightgbmThird.predict(XdataTwoThird_test), sample_weight=None, multioutput="uniform_average")}')
+print(f'模型三中LR平均绝对误差：'
+      f'{mean_absolute_error(ydataTwoThird_test, LogisticRegressionThird.predict(XdataTwoThird_test), sample_weight=None, multioutput="uniform_average")}\n'
+      f'模型三中LR均方误差：'
+      f'{mean_squared_error(ydataTwoThird_test, LogisticRegressionThird.predict(XdataTwoThird_test), sample_weight=None, multioutput="uniform_average")}')
+
+
+# #### 集成学习
+
+# In[40]:
+
+
+from mlxtend.classifier import StackingCVClassifier
+ThirdModel = StackingCVClassifier(classifiers=[XGBThird,LightgbmThird,KNNThird,RandomForestThird,LogisticRegressionThird], meta_classifier=SVC(random_state=2022), random_state=2022, cv=5)
+ThirdModel.fit(XdataTwoThird_train, ydataTwoThird_train)
+ThirdModel_score = ThirdModel.score(XdataTwoThird_test, ydataTwoThird_test)
+ThirdModel_score
+
+
+# In[41]:
+
+
+print(f'模型三平均绝对误差：'
+      f'{mean_absolute_error(ydataTwoThird_test, ThirdModel.predict(XdataTwoThird_test), sample_weight=None, multioutput="uniform_average")}\n'
+      f'模型三均方误差：'
+      f'{mean_squared_error(ydataTwoThird_test, ThirdModel.predict(XdataTwoThird_test), sample_weight=None, multioutput="uniform_average")}')
+
+
+# ### "手机上网稳定性"学习
+
+# In[42]:
+
+
+XdataTwoFourth=dataTwoNewStandard.loc[:,~dataTwoNewStandard.columns.isin(['手机上网整体满意度','网络覆盖与信号强度','手机上网速度','手机上网稳定性'])]
+ydataTwoFourth=dataTwoNewStandard['手机上网稳定性']
+XdataTwoFourth_train, XdataTwoFourth_test, ydataTwoFourth_train, ydataTwoFourth_test = train_test_split(XdataTwoFourth, ydataTwoFourth, test_size=0.1, random_state=2022)
+
+
+# #### 决策树、随机森林
+
+# In[43]:
+
+
+DecisionTreeFourth = DecisionTreeClassifier(random_state=2022)
+RandomForestFourth = RandomForestClassifier(random_state=2022, n_estimators=166, min_samples_leaf=20)
+DecisionTreeFourth = DecisionTreeFourth.fit(XdataTwoFourth_train, ydataTwoFourth_train)
+RandomForestFourth = RandomForestFourth.fit(XdataTwoFourth_train, ydataTwoFourth_train)
+RandomForestFourth_score = RandomForestFourth.score(XdataTwoFourth_test, ydataTwoFourth_test)
+RandomForestFourth_score
+
+
+# #### XGBoost
+
+# In[44]:
+
+
+from xgboost import XGBClassifier
+
+XGBFourth = XGBClassifier(learning_rate=0.02,
+                          n_estimators=14,
+                          max_depth=8,
+                          min_child_weight=1,
+                          gamma=0.05,
+                          subsample=1,
+                          colsample_btree=1,
+                          scale_pos_weight=1,
+                          random_state=2022,
+                          slient=0)
+XGBFourth.fit(XdataTwoFourth_train, ydataTwoFourth_train)
+XGBFourth_score = XGBFourth.score(XdataTwoFourth_test, ydataTwoFourth_test)
+XGBFourth_score
+
+
+# #### KNN
+
+# In[45]:
+
+
+from sklearn.neighbors import KNeighborsClassifier
+
+KNNFourth = KNeighborsClassifier(n_neighbors=36, p=1,)
+KNNFourth.fit(XdataTwoFourth_train, ydataTwoFourth_train)
+KNNFourth_score = KNNFourth.score(XdataTwoFourth_test, ydataTwoFourth_test)
+KNNFourth_score
+
+
+# #### 支持向量机
+
+# In[46]:
+
+
+from sklearn.svm import SVC
+
+SVMFourth = SVC(random_state=2022)
+SVMFourth.fit(XdataTwoFourth_train, ydataTwoFourth_train)
+SVMFourth_score = SVMFourth.score(XdataTwoFourth_test, ydataTwoFourth_test)
+SVMFourth_score
+
+
+# #### lightgbm
+
+# In[47]:
+
+
+from lightgbm import LGBMClassifier
+LightgbmFourth = LGBMClassifier(learning_rate = 0.1,
+                                lambda_l1=0.1,
+                                lambda_l2=0.2,
+                                max_depth=14,
+                                objective='multiclass',
+                                num_class=4,
+                                random_state=2022)
+LightgbmFourth.fit(XdataTwoFourth_train, ydataTwoFourth_train)
+LightgbmFourth_score = LightgbmFourth.score(XdataTwoFourth_test, ydataTwoFourth_test)
+LightgbmFourth_score
+
+
+# #### 逻辑回归
+
+# In[48]:
+
+
+from sklearn.linear_model import LogisticRegression
+LogisticRegressionFourth = LogisticRegression(multi_class="multinomial", solver="newton-cg", max_iter=2000)
+LogisticRegressionFourth = LogisticRegressionFourth.fit(XdataTwoFourth_train, ydataTwoFourth_train)
+LogisticRegressionFourth_score = LogisticRegressionFourth.score(XdataTwoFourth_test, ydataTwoFourth_test)
+LogisticRegressionFourth_score
+
+
+# In[49]:
+
+
+print(f'模型四中RF平均绝对误差：'
+      f'{mean_absolute_error(ydataTwoFourth_test, RandomForestFourth.predict(XdataTwoFourth_test), sample_weight=None, multioutput="uniform_average")}\n'
+      f'模型四中RF均方误差：'
+      f'{mean_squared_error(ydataTwoFourth_test, RandomForestFourth.predict(XdataTwoFourth_test), sample_weight=None, multioutput="uniform_average")}')
+print(f'模型四中XGBoost平均绝对误差：'
+      f'{mean_absolute_error(ydataTwoFourth_test, XGBFourth.predict(XdataTwoFourth_test), sample_weight=None, multioutput="uniform_average")}\n'
+      f'模型四中XGBoost均方误差：'
+      f'{mean_squared_error(ydataTwoFourth_test, XGBFourth.predict(XdataTwoFourth_test), sample_weight=None, multioutput="uniform_average")}')
+print(f'模型四中KNN平均绝对误差：'
+      f'{mean_absolute_error(ydataTwoFourth_test, KNNFourth.predict(XdataTwoFourth_test), sample_weight=None, multioutput="uniform_average")}\n'
+      f'模型四中KNN均方误差：'
+      f'{mean_squared_error(ydataTwoFourth_test, KNNFourth.predict(XdataTwoFourth_test), sample_weight=None, multioutput="uniform_average")}')
+print(f'模型四中SVM平均绝对误差：'
+      f'{mean_absolute_error(ydataTwoFourth_test, SVMFourth.predict(XdataTwoFourth_test), sample_weight=None, multioutput="uniform_average")}\n'
+      f'模型四中SVM均方误差：'
+      f'{mean_squared_error(ydataTwoFourth_test, SVMFourth.predict(XdataTwoFourth_test), sample_weight=None, multioutput="uniform_average")}')
+print(f'模型四中LightGBM平均绝对误差：'
+      f'{mean_absolute_error(ydataTwoFourth_test, LightgbmFourth.predict(XdataTwoFourth_test), sample_weight=None, multioutput="uniform_average")}\n'
+      f'模型四中LightGBM均方误差：'
+      f'{mean_squared_error(ydataTwoFourth_test, LightgbmFourth.predict(XdataTwoFourth_test), sample_weight=None, multioutput="uniform_average")}')
+print(f'模型四中LR平均绝对误差：'
+      f'{mean_absolute_error(ydataTwoFourth_test, LogisticRegressionFourth.predict(XdataTwoFourth_test), sample_weight=None, multioutput="uniform_average")}\n'
+      f'模型四中LR均方误差：'
+      f'{mean_squared_error(ydataTwoFourth_test, LogisticRegressionFourth.predict(XdataTwoFourth_test), sample_weight=None, multioutput="uniform_average")}')
+
+
+# #### 集成学习
+
+# In[50]:
+
+
+from mlxtend.classifier import StackingCVClassifier
+FourthModel = StackingCVClassifier(classifiers=[RandomForestFourth,LightgbmFourth,KNNFourth,LogisticRegressionFourth,XGBFourth], meta_classifier=SVC(random_state=2022), random_state=2022, cv=5)
+FourthModel.fit(XdataTwoFourth_train, ydataTwoFourth_train)
+FourthModel_score = FourthModel.score(XdataTwoFourth_test, ydataTwoFourth_test)
+FourthModel_score
+
+
+# In[51]:
+
+
+print(f'模型四平均绝对误差：'
+      f'{mean_absolute_error(ydataTwoFourth_test, FourthModel.predict(XdataTwoFourth_test), sample_weight=None, multioutput="uniform_average")}\n'
+      f'模型四均方误差：'
+      f'{mean_squared_error(ydataTwoFourth_test, FourthModel.predict(XdataTwoFourth_test), sample_weight=None, multioutput="uniform_average")}')
+
+
+# ## 预测附件4四项评分
+
+# ### 附件格式统一
+
+# In[52]:
+
+
+dataFour
+
+
+# In[53]:
+
+
+dataFour.replace({'居民小区':{-1:0},
+                 '是否5G网络客户':{'否':0,'是':1},
+                 '高校':{-1:0,3:1},
+                 '是否不限量套餐到达用户':{'否':0,'是':1},
+                 '其他，请注明.5':{-1:0,98:1},
+                 '咪咕视频':{-1:0,9:1},
+                 '阴阳师':{-1:0,10:1},
+                 '手机QQ':{-1:0,2:1},
+                 '手机上网速度慢':{-1:0,4:1},
+                 '炉石传说':{-1:0,9:1},
+                 '打游戏延时大':{-1:0,2:1},
+                 '火山':{-1:0,8:1},
+                 '显示有信号上不了网':{-1:0,2:1},
+                 '今日头条':{-1:0,6:1},
+                 '办公室':{-1:0,2:1},
+                 '梦幻西游':{-1:0,4:1},
+                 '其他，请注明.2':{-1:0,98:1},
+                 '客户星级标识':{'未评级':0,'准星':1,'一星':2,'二星':3,'三星':4,'银卡':5,'金卡':6,'白金卡':7,'钻石卡':8},
+                 '穿越火线':{-1:0,3:1},
+                 '全部都卡顿':{-1:0,99:1},
+                 '微信':{-1:0},
+                 '全部游戏都卡顿':{-1:0,99:1},
+                 '性别':{'男':1,'女':-1,'性别不详':0},
+                 '农村':{-1:0,6:1},
+                 '搜狐视频':{-1:0,5:1},
+                 '京东':{-1:0,4:1},
+                 '百度':{-1:0,5:1},
+                 '其他，请注明.1':{-1:0,98:1},
+                 '抖音':{-1:0,6:1},
+                 '商业街':{-1:0,4:1},
+                 '拼多多':{-1:0,8:1},
+                 '新浪微博':{-1:0,7:1},
+                 '其他，请注明':{-1:0,98:1},
+                 '和平精英':{-1:0},
+                 '手机支付较慢':{-1:0,5:1},
+                 '看视频卡顿':{-1:0},
+                 '梦幻诛仙':{-1:0,6:1},
+                 '部落冲突':{-1:0,8:1},
+                 '腾讯视频':{-1:0,3:1},
+                 '上网过程中网络时断时续或时快时慢':{-1:0,3:1},
+                 '其他，请注明.3':{-1:0,98:1},
+                 '地铁':{-1:0,5:1},
+                 '打开网页或APP图片慢':{-1:0,3:1},
+                 '快手':{-1:0,7:1},
+                 '芒果TV':{-1:0,4:1},
+                 '爱奇艺':{-1:0},
+                 '龙之谷':{-1:0,5:1},
+                 '高铁':{-1:0,7:1},
+                 '全部网页或APP都慢':{-1:0,99:1},
+                 '王者荣耀':{-1:0,2:1},
+                 '淘宝':{-1:0,3:1},
+                 '其他，请注明.4':{-1:0,98:1},
+                 '下载速度慢':{-1:0,4:1},
+                 '优酷':{-1:0,2:1},
+                 '欢乐斗地主':{-1:0,7:1},
+                 '网络信号差/没有信号':{-1:0},
+                 '终端品牌':{'0':0,'苹果':1,'华为':2,'小米科技':3,
+                            '步步高':4,'欧珀':5,'realme':6,'三星':7,
+                            '万普拉斯':8,'黑鲨':9,'锤子':10,'摩托罗拉':11,
+                            '中邮通信':12,'万普':13,'诺基亚':14,'联通':15,
+                            '中国移动':16,'中兴':17,'华硕':18,'联想':19,
+                            '魅族':20,'奇酷':21,'TD':22,'北京珠穆朗玛移动通信有限公司':23,
+                            '飞利浦':24,'捷开通讯科技':25,'金立':26,'酷比':27,
+                            '欧博信':28,'索尼爱立信':29,'维图':30,'甄十信息科技（上海）有限公司':31,
+                            '中国电信':32,'天翼':33,'RealMe':6}
+                 }, inplace=True)
+dataFour
+
+
+# In[54]:
+
+
+dataFour['出现问题场所或应用总']=dataFour.loc[:,~dataFour.columns.isin(['手机上网整体满意度','网络覆盖与信号强度','手机上网速度','手机上网稳定性','是否5G网络客户','是否不限量套餐到达用户','手机上网速度慢','打游戏延时大','显示有信号上不了网','上网质差次数','当月MOU','客户星级标识','全部都卡顿','全部游戏都卡顿','脱网次数','性别','套外流量费（元）','微信质差次数','百度','套外流量（MB）','手机支付较慢','看视频卡顿','终端品牌','上网过程中网络时断时续或时快时慢','打开网页或APP图片慢','全部网页或APP都慢','下载速度慢','网络信号差/没有信号'])].apply(lambda x1:x1.sum(), axis=1)
+dataFour['网络卡速度慢延时大上不了网总']=dataFour.loc[:,['手机上网速度慢','打游戏延时大','显示有信号上不了网','全部都卡顿','全部游戏都卡顿','手机支付较慢','看视频卡顿','上网过程中网络时断时续或时快时慢','打开网页或APP图片慢','全部网页或APP都慢','下载速度慢','网络信号差/没有信号']].apply(lambda x1:x1.sum(), axis=1)
+dataFour['质差总']=dataFour.loc[:,['微信质差次数','上网质差次数']].apply(lambda x1:x1.sum(), axis=1)
+dataFour['地点总']=dataFour.loc[:,['居民小区','高校','办公室','农村','商业街','地铁','高铁']].apply(lambda x1:x1.sum(),axis=1)
+dataFour
+
+
+# In[55]:
+
+
+dataFourStandardTransform = dataFour[['上网质差次数','当月MOU','客户星级标识','脱网次数','性别','套外流量费（元）','微信质差次数','套外流量（MB）','终端品牌','出现问题场所或应用总','网络卡速度慢延时大上不了网总','质差总','地点总']]
+dataFourStandardTransformScaler = sp.StandardScaler()
+dataFourStandardTransformScaler = dataFourStandardTransformScaler.fit(dataFourStandardTransform)
+dataFourStandardTransform = dataFourStandardTransformScaler.transform(dataFourStandardTransform)
+dataFourStandardTransform = pd.DataFrame(dataFourStandardTransform)
+dataFourStandardTransform.columns = ['上网质差次数','当月MOU','客户星级标识','脱网次数','性别','套外流量费（元）','微信质差次数','套外流量（MB）','终端品牌','出现问题场所或应用总','网络卡速度慢延时大上不了网总','质差总','地点总']
+dataFourStandardTransform
+
+
+# In[56]:
+
+
+dataFourLeave=dataFour.loc[:,~dataFour.columns.isin(['上网质差次数','当月MOU','客户星级标识','脱网次数','性别','套外流量费（元）','微信质差次数','套外流量（MB）','终端品牌','出现问题场所或应用总','网络卡速度慢延时大上不了网总','质差总','地点总'])]
+dataFourNewStandard=pd.concat([dataFourLeave, dataFourStandardTransform],axis=1)
+dataFourNewStandard
+
+
+# In[57]:
+
+
+dataTwoNewStandard
+
+
+# ### 预测上网业务评分
+# 需要注意到在所有预测结果上加上1，由于之前将评分编码为[0,9]，这里需要再映射回[1,10]
+
+# In[58]:
+
+
+Xpre=dataFourNewStandard
+
+
+# #### 手机上网整体满意度
+
+# In[59]:
+
+
+FirstPre=FirstModel.predict(Xpre)
+FirstPre
+
+
+# #### 网络覆盖与信号强度
+
+# In[60]:
+
+
+SecondPre=SecondModel.predict(Xpre)
+SecondPre
+
+
+# #### 手机上网速度
+
+# In[61]:
+
+
+ThirdPre=ThirdModel.predict(Xpre)
+ThirdPre
+
+
+# #### 手机上网稳定性
+
+# In[62]:
+
+
+FourthPre=FourthModel.predict(Xpre)
+FourthPre
+
+
+# ## 模型效果分析
+
+# In[63]:
+
+
+import matplotlib.pyplot as plt
+
+plt.rcParams['font.sans-serif']=['SimHei']
+plt.rcParams['axes.unicode_minus']=False
+
+
+# ### 混淆矩阵热力图
+
+# #### 模型一
+
+# In[64]:
+
+
+from yellowbrick.classifier import ConfusionMatrix
+classes=['1','2','3','4','5','6','7','8','9','10']
+confusion_matrix = ConfusionMatrix(FirstModel, classes=classes, cmap='BuGn')
+confusion_matrix.fit(XdataTwoFirst_train, ydataTwoFirst_train)
+confusion_matrix.score(XdataTwoFirst_test, ydataTwoFirst_test)
+plt.xticks(font='Times New Roman')
+plt.yticks(font='Times New Roman')
+confusion_matrix.show(outpath='figuresTwo\\[附件2]模型一混淆矩阵热力图.pdf')
+
+
+# #### 模型二
+
+# In[65]:
+
+
+from yellowbrick.classifier import ConfusionMatrix
+classes=['1','2','3','4','5','6','7','8','9','10']
+confusion_matrix = ConfusionMatrix(SecondModel, classes=classes, cmap='BuGn')
+confusion_matrix.fit(XdataTwoSecond_train, ydataTwoSecond_train)
+confusion_matrix.score(XdataTwoSecond_test, ydataTwoSecond_test)
+plt.xticks(font='Times New Roman')
+plt.yticks(font='Times New Roman')
+confusion_matrix.show(outpath='figuresTwo\\[附件2]模型二混淆矩阵热力图.pdf')
+
+
+# #### 模型三
+
+# In[66]:
+
+
+from yellowbrick.classifier import ConfusionMatrix
+classes=['1','2','3','4','5','6','7','8','9','10']
+confusion_matrix = ConfusionMatrix(ThirdModel, classes=classes, cmap='BuGn')
+confusion_matrix.fit(XdataTwoThird_train, ydataTwoThird_train)
+confusion_matrix.score(XdataTwoThird_test, ydataTwoThird_test)
+plt.xticks(font='Times New Roman')
+plt.yticks(font='Times New Roman')
+confusion_matrix.show(outpath='figuresTwo\\[附件2]模型三混淆矩阵热力图.pdf')
+
+
+# #### 模型四
+
+# In[67]:
+
+
+from yellowbrick.classifier import ConfusionMatrix
+classes=['1','2','3','4','5','6','7','8','9','10']
+confusion_matrix = ConfusionMatrix(FourthModel, classes=classes, cmap='BuGn')
+confusion_matrix.fit(XdataTwoFourth_train, ydataTwoFourth_train)
+confusion_matrix.score(XdataTwoFourth_test, ydataTwoFourth_test)
+plt.xticks(font='Times New Roman')
+plt.yticks(font='Times New Roman')
+confusion_matrix.show(outpath='figuresTwo\\[附件2]模型四混淆矩阵热力图.pdf')
+
+
+# ### 分类报告
+
+# #### 模型一
+
+# In[68]:
+
+
+from yellowbrick.classifier import ClassificationReport
+classes=['1','2','3','4','5','6','7','8','9','10']
+visualizer = ClassificationReport(FirstModel, classes=classes, support=True, cmap='Blues')
+visualizer.fit(XdataTwoFirst_train, ydataTwoFirst_train)
+visualizer.score(XdataTwoFirst_test, ydataTwoFirst_test)
+plt.xticks(font='Times New Roman')
+plt.yticks(font='Times New Roman')
+visualizer.show(outpath='figuresTwo\\[附件2]模型一分类报告.pdf')
+
+
+# #### 模型二
+
+# In[69]:
+
+
+from yellowbrick.classifier import ClassificationReport
+classes=['1','2','3','4','5','6','7','8','9','10']
+visualizer = ClassificationReport(SecondModel, classes=classes, support=True, cmap='Blues')
+visualizer.fit(XdataTwoSecond_train, ydataTwoSecond_train)
+visualizer.score(XdataTwoSecond_test, ydataTwoSecond_test)
+plt.xticks(font='Times New Roman')
+plt.yticks(font='Times New Roman')
+visualizer.show(outpath='figuresTwo\\[附件2]模型二分类报告.pdf')
+
+
+# #### 模型三
+
+# In[70]:
+
+
+from yellowbrick.classifier import ClassificationReport
+classes=['1','2','3','4','5','6','7','8','9','10']
+visualizer = ClassificationReport(ThirdModel, classes=classes, support=True, cmap='Blues')
+visualizer.fit(XdataTwoThird_train, ydataTwoThird_train)
+visualizer.score(XdataTwoThird_test, ydataTwoThird_test)
+plt.xticks(font='Times New Roman')
+plt.yticks(font='Times New Roman')
+visualizer.show(outpath='figuresTwo\\[附件2]模型三分类报告.pdf')
+
+
+# #### 模型四
+
+# In[71]:
+
+
+from yellowbrick.classifier import ClassificationReport
+classes=['1','2','3','4','5','6','7','8','9','10']
+visualizer = ClassificationReport(FourthModel, classes=classes, support=True, cmap='Blues')
+visualizer.fit(XdataTwoFourth_train, ydataTwoFourth_train)
+visualizer.score(XdataTwoFourth_test, ydataTwoFourth_test)
+plt.xticks(font='Times New Roman')
+plt.yticks(font='Times New Roman')
+visualizer.show(outpath='figuresTwo\\[附件2]模型四分类报告.pdf')
+
+
+# ### ROC AUC曲线
+
+# #### 模型一
+
+# In[72]:
+
+
+from yellowbrick.classifier import ROCAUC
+visualizer = ROCAUC(FirstModel)
+visualizer.fit(XdataTwoFirst_train, ydataTwoFirst_train)
+visualizer.score(XdataTwoFirst_test, ydataTwoFirst_test)
+plt.xticks(font='Times New Roman')
+plt.yticks(font='Times New Roman')
+visualizer.show(outpath='figuresTwo\\[附件2]模型一ROCAUC.pdf')
+
+
+# #### 模型二
+
+# In[73]:
+
+
+from yellowbrick.classifier import ROCAUC
+visualizer = ROCAUC(SecondModel)
+visualizer.fit(XdataTwoSecond_train, ydataTwoSecond_train)
+visualizer.score(XdataTwoSecond_test, ydataTwoSecond_test)
+plt.xticks(font='Times New Roman')
+plt.yticks(font='Times New Roman')
+visualizer.show(outpath='figuresTwo\\[附件2]模型二ROCAUC.pdf')
+
+
+# #### 模型三
+
+# In[74]:
+
+
+from yellowbrick.classifier import ROCAUC
+visualizer = ROCAUC(ThirdModel)
+visualizer.fit(XdataTwoThird_train, ydataTwoThird_train)
+visualizer.score(XdataTwoThird_test, ydataTwoThird_test)
+plt.xticks(font='Times New Roman')
+plt.yticks(font='Times New Roman')
+visualizer.show(outpath='figuresTwo\\[附件2]模型三ROCAUC.pdf')
+
+
+# #### 模型四
+
+# In[75]:
+
+
+from yellowbrick.classifier import ROCAUC
+visualizer = ROCAUC(FourthModel)
+visualizer.fit(XdataTwoFourth_train, ydataTwoFourth_train)
+visualizer.score(XdataTwoFourth_test, ydataTwoFourth_test)
+plt.xticks(font='Times New Roman')
+plt.yticks(font='Times New Roman')
+visualizer.show(outpath='figuresTwo\\[附件2]模型四ROCAUC.pdf')
+
+
+# ### 平均绝对误差、均方误差
+
+# #### 模型一
+
+# In[76]:
+
+
+print(f'模型一平均绝对误差：'
+      f'{mean_absolute_error(ydataTwoFirst_test, FirstModel.predict(XdataTwoFirst_test), sample_weight=None, multioutput="uniform_average")}\n'
+      f'模型一均方误差：'
+      f'{mean_squared_error(ydataTwoFirst_test, FirstModel.predict(XdataTwoFirst_test), sample_weight=None, multioutput="uniform_average")}')
+print(f'模型一中RF平均绝对误差：'
+      f'{mean_absolute_error(ydataTwoFirst_test, RandomForestFirst.predict(XdataTwoFirst_test), sample_weight=None, multioutput="uniform_average")}\n'
+      f'模型一中RF均方误差：'
+      f'{mean_squared_error(ydataTwoFirst_test, RandomForestFirst.predict(XdataTwoFirst_test), sample_weight=None, multioutput="uniform_average")}')
+print(f'模型一中XGBoost平均绝对误差：'
+      f'{mean_absolute_error(ydataTwoFirst_test, XGBFirst.predict(XdataTwoFirst_test), sample_weight=None, multioutput="uniform_average")}\n'
+      f'模型一中XGBoost均方误差：'
+      f'{mean_squared_error(ydataTwoFirst_test, XGBFirst.predict(XdataTwoFirst_test), sample_weight=None, multioutput="uniform_average")}')
+print(f'模型一中KNN平均绝对误差：'
+      f'{mean_absolute_error(ydataTwoFirst_test, KNNFirst.predict(XdataTwoFirst_test), sample_weight=None, multioutput="uniform_average")}\n'
+      f'模型一中KNN均方误差：'
+      f'{mean_squared_error(ydataTwoFirst_test, KNNFirst.predict(XdataTwoFirst_test), sample_weight=None, multioutput="uniform_average")}')
+print(f'模型一中SVM平均绝对误差：'
+      f'{mean_absolute_error(ydataTwoFirst_test, SVMFirst.predict(XdataTwoFirst_test), sample_weight=None, multioutput="uniform_average")}\n'
+      f'模型一中SVM均方误差：'
+      f'{mean_squared_error(ydataTwoFirst_test, SVMFirst.predict(XdataTwoFirst_test), sample_weight=None, multioutput="uniform_average")}')
+print(f'模型一中LightGBM平均绝对误差：'
+      f'{mean_absolute_error(ydataTwoFirst_test, LightgbmFirst.predict(XdataTwoFirst_test), sample_weight=None, multioutput="uniform_average")}\n'
+      f'模型一中LightGBM均方误差：'
+      f'{mean_squared_error(ydataTwoFirst_test, LightgbmFirst.predict(XdataTwoFirst_test), sample_weight=None, multioutput="uniform_average")}')
+print(f'模型一中LR平均绝对误差：'
+      f'{mean_absolute_error(ydataTwoFirst_test, LogisticRegressionFirst.predict(XdataTwoFirst_test), sample_weight=None, multioutput="uniform_average")}\n'
+      f'模型一中LR均方误差：'
+      f'{mean_squared_error(ydataTwoFirst_test, LogisticRegressionFirst.predict(XdataTwoFirst_test), sample_weight=None, multioutput="uniform_average")}')
+
+
+# #### 模型二
+
+# In[77]:
+
+
+print(f'模型二平均绝对误差：'
+      f'{mean_absolute_error(ydataTwoSecond_test, SecondModel.predict(XdataTwoSecond_test), sample_weight=None, multioutput="uniform_average")}\n'
+      f'模型二均方误差：'
+      f'{mean_squared_error(ydataTwoSecond_test, SecondModel.predict(XdataTwoSecond_test), sample_weight=None, multioutput="uniform_average")}')
+print(f'模型二中RF平均绝对误差：'
+      f'{mean_absolute_error(ydataTwoSecond_test, RandomForestSecond.predict(XdataTwoSecond_test), sample_weight=None, multioutput="uniform_average")}\n'
+      f'模型二中RF均方误差：'
+      f'{mean_squared_error(ydataTwoSecond_test, RandomForestSecond.predict(XdataTwoSecond_test), sample_weight=None, multioutput="uniform_average")}')
+print(f'模型二中XGBoost平均绝对误差：'
+      f'{mean_absolute_error(ydataTwoSecond_test, XGBSecond.predict(XdataTwoSecond_test), sample_weight=None, multioutput="uniform_average")}\n'
+      f'模型二中XGBoost均方误差：'
+      f'{mean_squared_error(ydataTwoSecond_test, XGBSecond.predict(XdataTwoSecond_test), sample_weight=None, multioutput="uniform_average")}')
+print(f'模型二中KNN平均绝对误差：'
+      f'{mean_absolute_error(ydataTwoSecond_test, KNNSecond.predict(XdataTwoSecond_test), sample_weight=None, multioutput="uniform_average")}\n'
+      f'模型二中KNN均方误差：'
+      f'{mean_squared_error(ydataTwoSecond_test, KNNSecond.predict(XdataTwoSecond_test), sample_weight=None, multioutput="uniform_average")}')
+print(f'模型二中SVM平均绝对误差：'
+      f'{mean_absolute_error(ydataTwoSecond_test, SVMSecond.predict(XdataTwoSecond_test), sample_weight=None, multioutput="uniform_average")}\n'
+      f'模型二中SVM均方误差：'
+      f'{mean_squared_error(ydataTwoSecond_test, SVMSecond.predict(XdataTwoSecond_test), sample_weight=None, multioutput="uniform_average")}')
+print(f'模型二中LightGBM平均绝对误差：'
+      f'{mean_absolute_error(ydataTwoSecond_test, LightgbmSecond.predict(XdataTwoSecond_test), sample_weight=None, multioutput="uniform_average")}\n'
+      f'模型二中LightGBM均方误差：'
+      f'{mean_squared_error(ydataTwoSecond_test, LightgbmSecond.predict(XdataTwoSecond_test), sample_weight=None, multioutput="uniform_average")}')
+print(f'模型二中LR平均绝对误差：'
+      f'{mean_absolute_error(ydataTwoSecond_test, LogisticRegressionSecond.predict(XdataTwoSecond_test), sample_weight=None, multioutput="uniform_average")}\n'
+      f'模型二中LR均方误差：'
+      f'{mean_squared_error(ydataTwoSecond_test, LogisticRegressionSecond.predict(XdataTwoSecond_test), sample_weight=None, multioutput="uniform_average")}')
+
+
+# #### 模型三
+
+# In[78]:
+
+
+print(f'模型三平均绝对误差：'
+      f'{mean_absolute_error(ydataTwoThird_test, ThirdModel.predict(XdataTwoThird_test), sample_weight=None, multioutput="uniform_average")}\n'
+      f'模型三均方误差：'
+      f'{mean_squared_error(ydataTwoThird_test, ThirdModel.predict(XdataTwoThird_test), sample_weight=None, multioutput="uniform_average")}')
+print(f'模型三中RF平均绝对误差：'
+      f'{mean_absolute_error(ydataTwoThird_test, RandomForestThird.predict(XdataTwoThird_test), sample_weight=None, multioutput="uniform_average")}\n'
+      f'模型三中RF均方误差：'
+      f'{mean_squared_error(ydataTwoThird_test, RandomForestThird.predict(XdataTwoThird_test), sample_weight=None, multioutput="uniform_average")}')
+print(f'模型三中XGBoost平均绝对误差：'
+      f'{mean_absolute_error(ydataTwoThird_test, XGBThird.predict(XdataTwoThird_test), sample_weight=None, multioutput="uniform_average")}\n'
+      f'模型三中XGBoost均方误差：'
+      f'{mean_squared_error(ydataTwoThird_test, XGBThird.predict(XdataTwoThird_test), sample_weight=None, multioutput="uniform_average")}')
+print(f'模型三中KNN平均绝对误差：'
+      f'{mean_absolute_error(ydataTwoThird_test, KNNThird.predict(XdataTwoThird_test), sample_weight=None, multioutput="uniform_average")}\n'
+      f'模型三中KNN均方误差：'
+      f'{mean_squared_error(ydataTwoThird_test, KNNThird.predict(XdataTwoThird_test), sample_weight=None, multioutput="uniform_average")}')
+print(f'模型三中SVM平均绝对误差：'
+      f'{mean_absolute_error(ydataTwoThird_test, SVMThird.predict(XdataTwoThird_test), sample_weight=None, multioutput="uniform_average")}\n'
+      f'模型三中SVM均方误差：'
+      f'{mean_squared_error(ydataTwoThird_test, SVMThird.predict(XdataTwoThird_test), sample_weight=None, multioutput="uniform_average")}')
+print(f'模型三中LightGBM平均绝对误差：'
+      f'{mean_absolute_error(ydataTwoThird_test, LightgbmThird.predict(XdataTwoThird_test), sample_weight=None, multioutput="uniform_average")}\n'
+      f'模型三中LightGBM均方误差：'
+      f'{mean_squared_error(ydataTwoThird_test, LightgbmThird.predict(XdataTwoThird_test), sample_weight=None, multioutput="uniform_average")}')
+print(f'模型三中LR平均绝对误差：'
+      f'{mean_absolute_error(ydataTwoThird_test, LogisticRegressionThird.predict(XdataTwoThird_test), sample_weight=None, multioutput="uniform_average")}\n'
+      f'模型三中LR均方误差：'
+      f'{mean_squared_error(ydataTwoThird_test, LogisticRegressionThird.predict(XdataTwoThird_test), sample_weight=None, multioutput="uniform_average")}')
+
+
+# #### 模型四
+
+# In[79]:
+
+
+print(f'模型四平均绝对误差：'
+      f'{mean_absolute_error(ydataTwoFourth_test, FourthModel.predict(XdataTwoFourth_test), sample_weight=None, multioutput="uniform_average")}\n'
+      f'模型四均方误差：'
+      f'{mean_squared_error(ydataTwoFourth_test, FourthModel.predict(XdataTwoFourth_test), sample_weight=None, multioutput="uniform_average")}')
+print(f'模型四中RF平均绝对误差：'
+      f'{mean_absolute_error(ydataTwoFourth_test, RandomForestFourth.predict(XdataTwoFourth_test), sample_weight=None, multioutput="uniform_average")}\n'
+      f'模型四中RF均方误差：'
+      f'{mean_squared_error(ydataTwoFourth_test, RandomForestFourth.predict(XdataTwoFourth_test), sample_weight=None, multioutput="uniform_average")}')
+print(f'模型四中XGBoost平均绝对误差：'
+      f'{mean_absolute_error(ydataTwoFourth_test, XGBFourth.predict(XdataTwoFourth_test), sample_weight=None, multioutput="uniform_average")}\n'
+      f'模型四中XGBoost均方误差：'
+      f'{mean_squared_error(ydataTwoFourth_test, XGBFourth.predict(XdataTwoFourth_test), sample_weight=None, multioutput="uniform_average")}')
+print(f'模型四中KNN平均绝对误差：'
+      f'{mean_absolute_error(ydataTwoFourth_test, KNNFourth.predict(XdataTwoFourth_test), sample_weight=None, multioutput="uniform_average")}\n'
+      f'模型四中KNN均方误差：'
+      f'{mean_squared_error(ydataTwoFourth_test, KNNFourth.predict(XdataTwoFourth_test), sample_weight=None, multioutput="uniform_average")}')
+print(f'模型四中SVM平均绝对误差：'
+      f'{mean_absolute_error(ydataTwoFourth_test, SVMFourth.predict(XdataTwoFourth_test), sample_weight=None, multioutput="uniform_average")}\n'
+      f'模型四中SVM均方误差：'
+      f'{mean_squared_error(ydataTwoFourth_test, SVMFourth.predict(XdataTwoFourth_test), sample_weight=None, multioutput="uniform_average")}')
+print(f'模型四中LightGBM平均绝对误差：'
+      f'{mean_absolute_error(ydataTwoFourth_test, LightgbmFourth.predict(XdataTwoFourth_test), sample_weight=None, multioutput="uniform_average")}\n'
+      f'模型四中LightGBM均方误差：'
+      f'{mean_squared_error(ydataTwoFourth_test, LightgbmFourth.predict(XdataTwoFourth_test), sample_weight=None, multioutput="uniform_average")}')
+print(f'模型四中LR平均绝对误差：'
+      f'{mean_absolute_error(ydataTwoFourth_test, LogisticRegressionFourth.predict(XdataTwoFourth_test), sample_weight=None, multioutput="uniform_average")}\n'
+      f'模型四中LR均方误差：'
+      f'{mean_squared_error(ydataTwoFourth_test, LogisticRegressionFourth.predict(XdataTwoFourth_test), sample_weight=None, multioutput="uniform_average")}')
+
+
+# ## 高频词汇云图
+
+# In[80]:
+
+
+import jieba
+import wordcloud
+from matplotlib.image import imread
+
+jieba.setLogLevel(jieba.logging.INFO)
+report = open('上网业务词云.txt', 'r', encoding='utf-8').read()
+words = jieba.lcut(report)
+txt = []
+for word in words:
+    if len(word) == 1:
+        continue
+    else:
+        txt.append(word)
+a = ' '.join(txt)
+bg = imread("bg.jpg")
+w = wordcloud.WordCloud(background_color="white", font_path="msyh.ttc", mask=bg)
+w.generate(a)
+w.to_file("figuresTwo\\wordcloudS.png")
+
 \end{python}
+\newpage
 \end{document}
